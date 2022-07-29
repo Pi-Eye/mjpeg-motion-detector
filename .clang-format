@@ -1,0 +1,11 @@
+# Use the Google style in this project.
+BasedOnStyle: Google
+
+# Prefer "int* foo" over "int *foo".
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+# Set a reasonable column limit
+ColumnLimit: 175
+
+CommentPragmas: '(@copydoc)'
