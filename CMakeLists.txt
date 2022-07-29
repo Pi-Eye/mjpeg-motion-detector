@@ -30,6 +30,20 @@ list(REMOVE_ITEM SRC_CC_FILES "src/main.cc")
 list(REMOVE_ITEM SRC_CC_FILES "src/open_cl_interface.cc")
 add_executable(${TEST_EXE_NAME} "tests/tests.cc" ${SRC_CC_FILES})
 
+# Find OpenCL
+find_package(OpenCL REQUIRED)
+# Link library
+target_link_libraries(${EXE_NAME} PRIVATE OpenCL::OpenCL)
+target_link_libraries(${TEST_EXE_NAME} PRIVATE OpenCL::OpenCL)
+
+# Find libjpeg-turbo
+find_package(libjpeg-turbo REQUIRED)
+# Link library
+target_link_libraries(${EXE_NAME} PRIVATE libjpeg-turbo::turbojpeg)
+target_include_directories(${EXE_NAME} PRIVATE ${JPEG_INCLUDE_DIR})
+target_link_libraries(${TEST_EXE_NAME} PRIVATE libjpeg-turbo::turbojpeg)
+target_include_directories(${TEST_EXE_NAME} PRIVATE ${JPEG_INCLUDE_DIR})
+
 # Find Catch2
 find_package(Catch2 CONFIG REQUIRED)
 # Link library
