@@ -3,5 +3,6 @@
 #endif
 
 #include <catch2/catch_all.hpp>
-
-TEST_CASE("True = True") { REQUIRE(true == true); }
+#include "generate_gaussian.test.hpp"
+//#include "jpeg_decompressor.test.hpp"
+//#include "motion_detector.test.hpp"
