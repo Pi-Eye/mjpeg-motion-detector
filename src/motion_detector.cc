@@ -6,4 +6,4 @@ MotionDetector::MotionDetector(InputVideoSettings input_vid_settings, MotionConf
 
 MotionDetector::~MotionDetector() {}
 
-bool MotionDetector::DetectOnFrame(unsigned int* frame) {}
+bool MotionDetector::DetectOnFrame(unsigned char* frame) {}

@@ -78,7 +78,7 @@ class MotionDetector {
    *              (note: image format will not be checked)
    * returns:   bool - if motion is detected or not
    */
-  bool DetectOnFrame(unsigned int* frame);
+  bool DetectOnFrame(unsigned char* frame);
 
   /**
    * BlurAndScale() - Blurs and scales an image using selected gaussian size
@@ -86,7 +86,7 @@ class MotionDetector {
    * image:     image to be blurred and scaled
    * returns:   cl::Buffer - blurred image
    */
-  cl::Buffer BlurAndScale(unsigned int* image);
+  cl::Buffer BlurAndScale(unsigned char* image);
 
   /**
    * StabilizeFrames() - Averages background and motion frames
