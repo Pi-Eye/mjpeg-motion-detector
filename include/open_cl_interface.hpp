@@ -29,6 +29,14 @@ struct DeviceConfig {
 class OpenCLInterface {
  public:
   /**
+   * ListDevices() - Gets list of avaliable OpenCL devices
+   *
+   * device_type:   OpenCL device type to show
+   * returns:       std::vector<cl::Device> - list of all avaliable devices where each item is the OpenCL device and the index is it's unique id
+   */
+  static std::vector<cl::Device> ListDevices(cl_device_type device_type);
+
+  /**
    * OpenCLInterface() - Constructor for OpenCLInterface
    *
    * device_config:   Settings for which device to select
@@ -43,17 +51,30 @@ class OpenCLInterface {
   void CreateContext(DeviceConfig device_config);
 
   /**
-   * ListDevices() - Gets list of avaliable OpenCL devices
+   * GetContext() - Get OpenCL context
    *
-   * device_type:   OpenCL device type to show
-   * returns:       std::vector<cl::Device> - list of all avaliable devices where each item is the OpenCL device and the index is it's unique id
+   * returns:   cl::Context& - reference of OpenCL context
    */
-  static std::vector<cl::Device> ListDevices(cl_device_type device_type);
+  cl::Context& GetContext();
+
+  /**
+   * GetDevice() - Get OpenCL device
+   *
+   * returns:   cl::Device& - reference of OpenCL device
+   */
+  cl::Device& GetDevice();
+
+  /**
+   * GetCommandQueue() - Get OpenCL command queue
+   *
+   * returns:   cl::CommandQueue& - reference of OpenCL command queue
+   */
+  cl::CommandQueue& GetCommandQueue();
 
  private:
-  cl::Context context_;
-  cl::Device device_;
-  cl::CommandQueue cmd_queue_;
+  cl::Context context_;         // OpenCL context
+  cl::Device device_;           // OpenCL device being used
+  cl::CommandQueue cmd_queue_;  // OpenCL command queue
 };
 
 #endif

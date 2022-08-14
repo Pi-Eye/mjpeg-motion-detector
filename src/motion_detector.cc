@@ -2,6 +2,8 @@
 
 #include <CL/cl.hpp>
 
+#include "open_cl_interface.hpp"
+
 MotionDetector::MotionDetector(InputVideoSettings input_vid_settings, MotionConfig motion_config, DeviceConfig device_config) {}
 
 MotionDetector::~MotionDetector() {}

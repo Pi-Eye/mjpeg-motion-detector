@@ -118,13 +118,13 @@ class MotionDetector {
 
   /**
    * GetCLQueue() - Gets OpenCL Command Queue
-   * 
+   *
    * returns:   cl::CommandQueue - OpenCL Command Queue of motion detector
-  */
- cl::CommandQueue GetCLQueue() const;
+   */
+  cl::CommandQueue GetCLQueue() const;
 
  private:
-  cl_context context_;              // OpenCL context to run motion detection on
+  OpenCLInterface opencl_;          // OpenCL interface
   std::vector<cl::Buffer> frames_;  // Vector of OpenCL buffers for frames
 
   InputVideoSettings input_vid_;  // Metadata about MJPEG stream coming in
