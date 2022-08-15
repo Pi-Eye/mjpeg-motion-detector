@@ -27,7 +27,6 @@ set(TEST_EXE_NAME "test")
 add_executable(${EXE_NAME} "src/main.cc" ${SRC_CC_FILES})
 # Remove main.cc and open_cl_interface.cc from SRC_CC_Files for use in tests
 list(REMOVE_ITEM SRC_CC_FILES "src/main.cc")
-list(REMOVE_ITEM SRC_CC_FILES "src/open_cl_interface.cc")
 add_executable(${TEST_EXE_NAME} "tests/tests.cc" ${SRC_CC_FILES})
 
 # Find OpenCL

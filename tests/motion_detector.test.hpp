@@ -3,12 +3,11 @@
 #include <cmath>
 #include <limits>
 
-#include "jpeg_decompressor.test.hpp"
 #include "motion_detector.hpp"
 
 TEST_CASE("Construct Detector") {
   SECTION("With Valid Input") {
-    InputVideoSettings input_vid_set_sol = {640, 480, 10, DecompFrameFormat::kRGB};
+    InputVideoSettings input_vid_set_sol = {640, 480, DecompFrameFormat::kRGB};
     MotionConfig motion_config_sol = {1, 1, 10, 5, 5, 0.5};
     DeviceConfig device_config_sol = {DeviceType::kGPU, 2};
 
@@ -20,7 +19,6 @@ TEST_CASE("Construct Detector") {
 
     REQUIRE(input_vid_set.width == input_vid_set_sol.width);
     REQUIRE(input_vid_set.height == input_vid_set_sol.height);
-    REQUIRE(input_vid_set.fps == input_vid_set_sol.fps);
     REQUIRE(input_vid_set.frame_format == input_vid_set_sol.frame_format);
 
     REQUIRE(motion_config.gaussian_size == motion_config.gaussian_size);
@@ -36,63 +34,56 @@ TEST_CASE("Construct Detector") {
 
   SECTION("With Invalid Input") {
     // Invalid Width
-    InputVideoSettings input_vid_set_sol = {0, 480, 10, DecompFrameFormat::kRGB};
+    InputVideoSettings input_vid_set_sol = {0, 480, DecompFrameFormat::kRGB};
     MotionConfig motion_config_sol = {1, 1, 10, 5, 0, 0.5};
     DeviceConfig device_config_sol = {DeviceType::kGPU, 2};
 
     REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
 
     // Invalid Height
-    input_vid_set_sol = {640, 0, 10, DecompFrameFormat::kRGB};
-    motion_config_sol = {1, 1, 10, 5, 0, 0.5};
-    device_config_sol = {DeviceType::kGPU, 2};
-
-    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
-
-    // Invalid FPS
-    input_vid_set_sol = {640, 480, 0, DecompFrameFormat::kRGB};
+    input_vid_set_sol = {640, 0, DecompFrameFormat::kRGB};
     motion_config_sol = {1, 1, 10, 5, 0, 0.5};
     device_config_sol = {DeviceType::kGPU, 2};
 
     REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
 
     // Invalid Scale Denominator
-    input_vid_set_sol = {640, 480, 10, DecompFrameFormat::kRGB};
+    input_vid_set_sol = {640, 480, DecompFrameFormat::kRGB};
     motion_config_sol = {1, 0, 10, 5, 0, 0.5};
     device_config_sol = {DeviceType::kGPU, 2};
 
     REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
 
     // Invalid Background Stabilization Length
-    input_vid_set_sol = {640, 480, 10, DecompFrameFormat::kRGB};
+    input_vid_set_sol = {640, 480, DecompFrameFormat::kRGB};
     motion_config_sol = {1, 1, 0, 5, 0, 0.5};
     device_config_sol = {DeviceType::kGPU, 2};
 
     REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
 
     // Invalid Movement Stabilization Length
-    input_vid_set_sol = {640, 480, 10, DecompFrameFormat::kRGB};
+    input_vid_set_sol = {640, 480, DecompFrameFormat::kRGB};
     motion_config_sol = {1, 1, 10, 0, 0, 0.5};
     device_config_sol = {DeviceType::kGPU, 2};
 
     REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
 
     // Invalid Minimun Changed Pixels
-    input_vid_set_sol = {640, 480, 10, DecompFrameFormat::kRGB};
+    input_vid_set_sol = {640, 480, DecompFrameFormat::kRGB};
     motion_config_sol = {1, 1, 10, 5, 0, -0.5};
     device_config_sol = {DeviceType::kGPU, 2};
 
     REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
 
     // Invalid Minimun Changed Pixels
-    input_vid_set_sol = {640, 480, 10, DecompFrameFormat::kRGB};
+    input_vid_set_sol = {640, 480, DecompFrameFormat::kRGB};
     motion_config_sol = {1, 1, 10, 5, 0, 1.1};
     device_config_sol = {DeviceType::kGPU, 2};
 
     REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
 
     // Invalid Gaussian Size and Scale Denominator Combination
-    input_vid_set_sol = {3, 3, 10, DecompFrameFormat::kRGB};
+    input_vid_set_sol = {3, 3, DecompFrameFormat::kRGB};
     motion_config_sol = {1, 2, 10, 5, 0, 0.1};
     device_config_sol = {DeviceType::kGPU, 2};
 
@@ -109,7 +100,7 @@ TEST_CASE("Detect Motion On RGB Frames") {  // NOLINT(readability-function-cogni
   }
 
   SECTION("Blur and Scale Step") {
-    InputVideoSettings input_vid_set_sol = {3, 3, 10, DecompFrameFormat::kRGB};
+    InputVideoSettings input_vid_set_sol = {3, 3, DecompFrameFormat::kRGB};
     MotionConfig motion_config_sol = {1, 1, 10, 2, 0, 0.0};
     DeviceConfig device_config_sol = {DeviceType::kGPU, 0};
 
@@ -125,7 +116,7 @@ TEST_CASE("Detect Motion On RGB Frames") {  // NOLINT(readability-function-cogni
   }
 
   SECTION("Stabilize Frames Step") {
-    InputVideoSettings input_vid_set_sol = {3, 3, 10, DecompFrameFormat::kRGB};
+    InputVideoSettings input_vid_set_sol = {3, 3, DecompFrameFormat::kRGB};
     MotionConfig motion_config_sol = {0, 1, 10, 2, 0, 0.0};
     DeviceConfig device_config_sol = {DeviceType::kGPU, 0};
 

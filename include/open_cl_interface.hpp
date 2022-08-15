@@ -41,7 +41,7 @@ class OpenCLInterface {
    *
    * device_config:   Settings for which device to select
    */
-  explicit OpenCLInterface(DeviceConfig device_config);
+  OpenCLInterface(DeviceConfig device_config);
 
   /**
    * CreateContext() - Selects OpenCL device based on configuration and creates context

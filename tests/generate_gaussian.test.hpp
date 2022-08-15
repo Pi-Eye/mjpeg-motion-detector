@@ -32,26 +32,26 @@ bool CompareKernels(std::vector<double> kernel_A, std::vector<double> kernel_B) 
 }
 
 TEST_CASE("Generate kernels With 1x Scale") {
-  SECTION("1x1 kernel") { 
+  SECTION("1x1 kernel") {
     std::vector<double> solution_kernel = {1};
 
-    Gaussian gaussian = GenerateGaussian(0);
+    std::vector<double> gaussian = GenerateGaussian(0);
 
-    REQUIRE(CompareKernels(solution_kernel, gaussian.kernel));
+    REQUIRE(CompareKernels(solution_kernel, gaussian));
   }
   SECTION("3x3 kernel") {
     std::vector<double> solution_kernel = {0.274, 0.452, 0.274};
 
-    Gaussian gaussian = GenerateGaussian(1);
+    std::vector<double> gaussian = GenerateGaussian(1);
 
-    REQUIRE(CompareKernels(solution_kernel, gaussian.kernel));
+    REQUIRE(CompareKernels(solution_kernel, gaussian));
   }
   SECTION("5x5 kernel") {
     std::vector<double> solution_kernel = {0.054, 0.244, 0.403, 0.244, 0.054};
 
-    Gaussian gaussian = GenerateGaussian(2);
+    std::vector<double> gaussian = GenerateGaussian(2);
 
-    REQUIRE(CompareKernels(solution_kernel, gaussian.kernel));
+    REQUIRE(CompareKernels(solution_kernel, gaussian));
   }
 }
 
@@ -59,25 +59,25 @@ TEST_CASE("Generate kernels With 2x Scale") {
   SECTION("1x1 kernel") {
     std::vector<double> solution_kernel = {1 / 2.0, 1 / 2.0};
 
-    Gaussian gaussian = GenerateGaussian(0);
+    std::vector<double> gaussian = GenerateGaussian(0);
     gaussian = ScaleGaussian(gaussian, 2);
 
-    REQUIRE(CompareKernels(solution_kernel, gaussian.kernel));
+    REQUIRE(CompareKernels(solution_kernel, gaussian));
   }
   SECTION("3x3 kernel") {
     std::vector<double> solution_kernel = {0.274 / 2.0, 0.274 / 2.0, 0.452 / 2.0, 0.452 / 2.0, 0.274 / 2.0, 0.274 / 2.0};
 
-    Gaussian gaussian = GenerateGaussian(1);
+    std::vector<double> gaussian = GenerateGaussian(1);
     gaussian = ScaleGaussian(gaussian, 2);
 
-    REQUIRE(CompareKernels(solution_kernel, gaussian.kernel));
+    REQUIRE(CompareKernels(solution_kernel, gaussian));
   }
   SECTION("5x5 kernel") {
     std::vector<double> solution_kernel = {0.054 / 2.0, 0.054 / 2.0, 0.244 / 2.0, 0.244 / 2.0, 0.403 / 2.0, 0.403 / 2.0, 0.244 / 2.0, 0.244 / 2.0, 0.054 / 2.0, 0.054 / 2.0};
 
-    Gaussian gaussian = GenerateGaussian(2);
+    std::vector<double> gaussian = GenerateGaussian(2);
     gaussian = ScaleGaussian(gaussian, 2);
 
-    REQUIRE(CompareKernels(solution_kernel, gaussian.kernel));
+    REQUIRE(CompareKernels(solution_kernel, gaussian));
   }
 }

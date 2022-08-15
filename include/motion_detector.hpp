@@ -12,13 +12,11 @@
  *
  * width:         width of video in pixels
  * height:        height of video in pixels
- * fps:           frames per second of video
  * video_format:  video format
  */
 struct InputVideoSettings {
   unsigned int width;
   unsigned int height;
-  unsigned int fps;
   DecompFrameFormat frame_format;
 };
 
@@ -100,32 +98,33 @@ class MotionDetector {
    *
    * returns:   InputVideoSettings - input video settings of motion detector
    */
-  const InputVideoSettings GetInputVideoSettings() const;
+  InputVideoSettings GetInputVideoSettings() const;
 
   /**
    * GetMotionConfig() - Gets motion detection configuration
    *
    * returns:   MotionConfig - motion detection configuration of motion detector
    */
-  const MotionConfig GetMotionConfig() const;
+  MotionConfig GetMotionConfig() const;
 
   /**
    * GetDeviceConfig() - Gets device configuration
    *
    * returns:   DeviceConfig - processing device configuration of motion detector
    */
-  const DeviceConfig GetDeviceConfig() const;
+  DeviceConfig GetDeviceConfig() const;
 
   /**
    * GetCLQueue() - Gets OpenCL Command Queue
    *
    * returns:   cl::CommandQueue - OpenCL Command Queue of motion detector
    */
-  cl::CommandQueue GetCLQueue() const;
+  cl::CommandQueue& GetCLQueue();
 
  private:
   OpenCLInterface opencl_;          // OpenCL interface
   std::vector<cl::Buffer> frames_;  // Vector of OpenCL buffers for frames
+  cl::Buffer gaussian_kernel_;      // OpenCL buffer of gaussian kernel
 
   InputVideoSettings input_vid_;  // Metadata about MJPEG stream coming in
   MotionConfig motion_config_;    // Settings for how exactly to run motion detection

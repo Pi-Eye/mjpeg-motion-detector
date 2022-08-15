@@ -3,7 +3,7 @@
 #include <cmath>
 #include <vector>
 
-Gaussian GenerateGaussian(unsigned int size) {
+std::vector<double> GenerateGaussian(unsigned int size) {
   // Calculate Kernal height and width
   unsigned int kernel_size = (2 * size) + 1;
 
@@ -22,21 +22,21 @@ Gaussian GenerateGaussian(unsigned int size) {
   // Normalize Values
   for (int i = 0; i < kernel_size; i++) kernel.at(i) /= sum;
 
-  return {1, kernel};
+  return kernel;
 }
 
-Gaussian ScaleGaussian(Gaussian& gaussian, unsigned int scale) {
+std::vector<double> ScaleGaussian(std::vector<double>& gaussian, unsigned int scale) {
   // Create resized 1D array for kernel
   std::vector<double> kernel;
 
   // Copy values over and scale
   double sum = 0;
-  for (int i = 0; i < gaussian.kernel.size(); i++) {
+  for (int i = 0; i < gaussian.size(); i++) {
     for (int j = 0; j < scale; j++) {
       unsigned int index = i * scale + j;
-      kernel.push_back(gaussian.kernel.at(i) / scale);
+      kernel.push_back(gaussian.at(i) / scale);
     }
   }
 
-  return {scale, kernel};
+  return kernel;
 }
