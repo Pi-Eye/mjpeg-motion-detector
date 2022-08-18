@@ -1,7 +1,8 @@
 #ifndef MOTION_DETECTOR_HPP
 #define MOTION_DETECTOR_HPP
 
-#include <CL/cl.hpp>
+#include <CL/opencl.h>
+
 #include <vector>
 
 #include "jpeg_decompressor.hpp"
@@ -46,8 +47,8 @@ struct MotionConfig {
  * stabilized_mvt:  averaged movement frames
  */
 struct StabilizedFrames {
-  cl::Buffer stabilized_bg;
-  cl::Buffer stabilized_mvt;
+  cl::Buffer& stabilized_bg;
+  cl::Buffer& stabilized_mvt;
 };
 
 /**
@@ -82,49 +83,119 @@ class MotionDetector {
    * BlurAndScale() - Blurs and scales an image using selected gaussian size
    *
    * image:     image to be blurred and scaled
-   * returns:   cl::Buffer - blurred image
+   * returns:   cl::Buffer& - blurred and scaled image
    */
-  cl::Buffer BlurAndScale(unsigned char* image);
+  cl::Buffer& BlurAndScale(unsigned char* frame);
 
   /**
-   * StabilizeFrames() - Averages background and motion frames
+   * StabilizeAndCompareFrames() - Averages background and motion frames and compares them
    *
-   * returns:   StabilizedFrames - pair of stabilized frames
+   * returns:   cl::Buffer& - image of differences
    */
-  StabilizedFrames StabilizeFrames();
-
-  /**
-   * GetInputVideoSettings() - Gets input video settings
-   *
-   * returns:   InputVideoSettings - input video settings of motion detector
-   */
-  InputVideoSettings GetInputVideoSettings() const;
-
-  /**
-   * GetMotionConfig() - Gets motion detection configuration
-   *
-   * returns:   MotionConfig - motion detection configuration of motion detector
-   */
-  MotionConfig GetMotionConfig() const;
-
-  /**
-   * GetDeviceConfig() - Gets device configuration
-   *
-   * returns:   DeviceConfig - processing device configuration of motion detector
-   */
-  DeviceConfig GetDeviceConfig() const;
-
-  /**
-   * GetCLQueue() - Gets OpenCL Command Queue
-   *
-   * returns:   cl::CommandQueue - OpenCL Command Queue of motion detector
-   */
-  cl::CommandQueue& GetCLQueue();
+  cl::Buffer& StabilizeAndCompareFrames();
 
  private:
-  OpenCLInterface opencl_;          // OpenCL interface
-  std::vector<cl::Buffer> frames_;  // Vector of OpenCL buffers for frames
-  cl::Buffer gaussian_kernel_;      // OpenCL buffer of gaussian kernel
+  /**
+   * ValidateSettings() - Validates settings for motion detector
+   */
+  void ValidateSettings() const;
+
+  /**
+   * InitOpenCL() - Sets up OpenCL opbjects
+   */
+  void InitOpenCL();
+
+  /**
+   * InitWorkSizes() - Calculates and creates OpenCL device work sizes
+   */
+  void InitWorkSizes();
+
+  /**
+   * CalculateBufferSizes() - Calculates sizes of buffers needed for motion detection
+   */
+  void CalculateBufferSizes();
+
+  /**
+   * LoadBlurAndScaleBuffers() - Loads OpenCL buffers for blurring and scaling frame
+   */
+  void LoadBlurAndScaleBuffers();
+
+  /**
+   * LoadBlurAndScaleKernels() - Loads OpenCL kernels for blurring and scaling frame
+   */
+  void LoadBlurAndScaleKernels();
+
+  /**
+   * LoadStabilizeAndCompareBuffer() - Loads OpenCL buffers for stabilizing background and movement and comparing them
+   */
+  void LoadStabilizeAndCompareBuffers();
+
+  /**
+   * LoadStabilizeAndCompareKernel() - Loads OpenCL kernels for stabilizing background and movement and comparing them
+   */
+  void LoadStabilizeAndCompareKernel();
+
+  /**
+   * LoadProgram() - Loads OpenCL program from given filename
+   *
+   * returns:  cl::Program - built OpenCL program
+   */
+  cl::Program LoadProgram(const std::string& filename);
+
+  cl::Device device_;           // PpenCL device motion detection will run on
+  cl::Context context_;         // OpenCL context for device
+  cl::CommandQueue cmd_queue_;  // OpenCL command queue for device
+
+  // Inputs
+  cl::Buffer gaussian_;       // OpenCL buffer of gaussian kernel
+  cl::Buffer gaussian_size_;  // OpenCL buffer of gaussian kernel size
+  cl::Buffer scale_;          // OpenCL buffer of scale factor
+  cl::Buffer colors_;         // OpenCL buffer of number of colors
+  cl::Buffer input_width_;    // OpenCL buffer of width of input frame
+  cl::Buffer output_width_;   // OpenCL buffer of width of scaled frame
+  cl::Buffer input_frame_;    // OpenCL buffer for incoming frame to be processed
+
+  // Kernel
+  cl::Kernel bs_vertical_kernel_;  // OpenCL kernel for blurring and scaling frame vertically
+  // Output
+  cl::Buffer intermediate_scaled_frame_;  // OpenCL buffer for scaled frame after just vertical scaling
+
+  // Kernel
+  cl::Kernel bs_horizontal_kernel_;  // OpenCL kernel for blurring and scaling frame horizontally
+  // Output
+  cl::Buffer scaled_frame_;  // OpenCL buffer for scaled frame
+
+  // Inputs
+  cl::Buffer bg_length_;             // OpenCL buffer for length of background
+  cl::Buffer mvt_length_;            // OpenCL buffer for length of movement
+  cl::Buffer bg_frame_to_remove_;    // OpenCL buffer for background frame to be removed from average
+  cl::Buffer mvt_frame_to_remove_;   // OpenCL buffer for movement frame to be removed from average
+  cl::Buffer pixel_diff_threshold_;  // OpenCL buffer for amount pixel needs to be different by to be different
+  // Kernel
+  cl::Kernel stabilize_kernel_;  // OpenCL kernel for stabilizing background and forground
+  // Outputs
+  cl::Buffer stabilized_background_;  // OpenCL buffer for stabilzed background
+  cl::Buffer stabilized_movement_;    // OpenCL buffer for stabilzied movement
+  cl::Buffer difference_frame_;       // OpenCL buffer for difference between background and movement
+
+  cl::NDRange scaled_global_work_size_2d_;               // 2D Work size of fully scaled down frame
+  cl::NDRange intermediate_scaled_global_work_size_2d_;  // 2D Work size of vertically scaled down frame
+  cl::NDRange motion_thread_block_size_2d_;              // 2D Work size of thread for motion detection
+  cl::NDRange scaled_global_work_size_1d_;               // 1D Work size of fully scaled down frame
+  cl::NDRange motion_thread_block_size_1d_;              // 1D Work size of thread for motion detection
+
+  unsigned int newest_frame_loc_ = 0;   // Index of the newest frame in the list of all frames
+  unsigned int bg_remove_loc_;          // Index of background frame to remove in the list of all frames
+  unsigned int mvt_remove_loc_;         // Index of movement frame to remove in the list of all frames
+  std::vector<unsigned char*> frames_;  // List of all frames
+
+  unsigned int diff_threshold_;  // Number of pixels that need to be different for the frame to be counted as motion
+
+  unsigned int input_frame_buffer_size_;                // Size of frame input
+  unsigned int intermediate_scaled_frame_buffer_size_;  // Size of intermediate scaling step
+  unsigned int scaled_frame_buffer_size_;               // Size of scaled frame for motion detection (no color data)
+  unsigned int scaled_width_;                           // Width of scaled frames
+  unsigned int scaled_height_;                          // Height of scaled frames
 
   InputVideoSettings input_vid_;  // Metadata about MJPEG stream coming in
   MotionConfig motion_config_;    // Settings for how exactly to run motion detection

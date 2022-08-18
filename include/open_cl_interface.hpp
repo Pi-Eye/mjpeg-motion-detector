@@ -37,44 +37,11 @@ class OpenCLInterface {
   static std::vector<cl::Device> ListDevices(cl_device_type device_type);
 
   /**
-   * OpenCLInterface() - Constructor for OpenCLInterface
+   * CreateContext() - Selects OpenCL device based on configuration
    *
    * device_config:   Settings for which device to select
    */
-  OpenCLInterface(DeviceConfig device_config);
-
-  /**
-   * CreateContext() - Selects OpenCL device based on configuration and creates context
-   *
-   * device_config:   Settings for which device to select
-   */
-  void CreateContext(DeviceConfig device_config);
-
-  /**
-   * GetContext() - Get OpenCL context
-   *
-   * returns:   cl::Context& - reference of OpenCL context
-   */
-  cl::Context& GetContext();
-
-  /**
-   * GetDevice() - Get OpenCL device
-   *
-   * returns:   cl::Device& - reference of OpenCL device
-   */
-  cl::Device& GetDevice();
-
-  /**
-   * GetCommandQueue() - Get OpenCL command queue
-   *
-   * returns:   cl::CommandQueue& - reference of OpenCL command queue
-   */
-  cl::CommandQueue& GetCommandQueue();
-
- private:
-  cl::Context context_;         // OpenCL context
-  cl::Device device_;           // OpenCL device being used
-  cl::CommandQueue cmd_queue_;  // OpenCL command queue
+  static cl::Device GetDevice(DeviceConfig device_config);
 };
 
 #endif

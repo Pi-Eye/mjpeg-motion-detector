@@ -23,42 +23,29 @@ std::vector<cl::Device> OpenCLInterface::ListDevices(cl_device_type device_type)
   return devices;
 }
 
-OpenCLInterface::OpenCLInterface(DeviceConfig device_config) {
-  CreateContext(device_config);
-  cmd_queue_ = cl::CommandQueue(context_, device_);
-}
-
-void OpenCLInterface::CreateContext(DeviceConfig device_config) {
+cl::Device OpenCLInterface::GetDevice(DeviceConfig device_config) {
   // Select device and throw error if not found
+  cl::Device device;
   switch (device_config.device_type) {
     case (DeviceType::kCPU):
     default: {
       std::vector<cl::Device> avaliable_devices = ListDevices(CL_DEVICE_TYPE_CPU);
       if (avaliable_devices.empty()) throw std::runtime_error("No OpenCL compatable CPU's found");
-      device_ = avaliable_devices.at(0);
+      device = avaliable_devices.at(0);
       break;
     }
     case (DeviceType::kGPU): {
       std::vector<cl::Device> avaliable_devices = ListDevices(CL_DEVICE_TYPE_GPU);
       if (avaliable_devices.empty()) throw std::runtime_error("No OpenCL compatable GPU's found");
-      device_ = avaliable_devices.at(0);
+      device = avaliable_devices.at(0);
       break;
     }
     case (DeviceType::kSpecific): {
       std::vector<cl::Device> avaliable_devices = ListDevices(CL_DEVICE_TYPE_ALL);
       if (avaliable_devices.size() <= device_config.device_choice) throw std::runtime_error("Selected OpenCL device was not avaliable");
-      device_ = avaliable_devices.at(device_config.device_choice);
+      device = avaliable_devices.at(device_config.device_choice);
       break;
     }
   }
-  std::cout << "Selected device: " + device_.getInfo<CL_DEVICE_NAME>() << std::endl;
-
-  // Create OpenCL context and command queue
-  context_ = cl::Context(device_);
+  return device;
 }
-
-cl::Context& OpenCLInterface::GetContext() { return context_; }
-
-cl::Device& OpenCLInterface::GetDevice() { return device_; }
-
-cl::CommandQueue& OpenCLInterface::GetCommandQueue() { return cmd_queue_; }
