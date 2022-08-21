@@ -24,14 +24,14 @@ std::vector<unsigned int> scale_denominators = {1, 5, 10};
 
 std::vector<Configs> PermutateConfigs() {
   std::vector<Configs> configs;
-  for (int a = 0; a < resolutions.size(); a++) {
+  for (int a = 0; a < decomp_methods.size(); a++) {
     for (int b = 0; b < frame_formats.size(); b++) {
-      for (int c = 0; c < decomp_methods.size(); c++) {
-        for (int d = 0; d < gaussian_sizes.size(); d++) {
-          for (int e = 0; e < scale_denominators.size(); e++) {
+      for (int c = 0; c < gaussian_sizes.size(); c++) {
+        for (int d = 0; d < scale_denominators.size(); d++) {
+          for (int e = 0; e < resolutions.size(); e++) {
             configs.push_back({
-                {gaussian_sizes.at(d), scale_denominators.at(e), 10, 2, 1, 0.1, decomp_methods.at(c)},
-                {resolutions.at(a).first, resolutions.at(a).second, frame_formats.at(b)},
+                {gaussian_sizes.at(c), scale_denominators.at(d), 10, 2, 1, 0.1, decomp_methods.at(a)},
+                {resolutions.at(e).first, resolutions.at(e).second, frame_formats.at(b)},
             });
           }
         }
