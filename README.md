@@ -14,7 +14,7 @@ A simple motion detector for MJPEG streams.
 
 ### Prerequisites
 
-1. An OpenCL 1.2 compatible device ([compatability list](https://www.khronos.org/conformance/adopters/conformant-products/opencl))
+1. An OpenCL 2.2 compatible device ([compatability list](https://www.khronos.org/conformance/adopters/conformant-products/opencl))
 
 2. [vcpkg](https://vcpkg.io/en/index.html)
 
@@ -38,7 +38,7 @@ A simple motion detector for MJPEG streams.
 
     In the directory you just cloned, run:
     ```sh
-    cmake -DMAKE_TOOLCHAIN_FILE:STRING="path/to/vcpkg/scripts/buildsystems/vcpkg.cmake" . -B./build
+    cmake -DCMAKE_TOOLCHAIN_FILE:STRING="path/to/vcpkg/scripts/buildsystems/vcpkg.cmake" -S. -B./build
     ```
 
 4. Build
