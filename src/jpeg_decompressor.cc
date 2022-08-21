@@ -43,7 +43,7 @@ JpegDecompressor::~JpegDecompressor() {
   }
 }
 
-unsigned char* JpegDecompressor::DecompressImage(unsigned char* compressed_image, unsigned long int jpeg_size) const {
+unsigned char* JpegDecompressor::DecompressImage(unsigned char* compressed_image, unsigned long& jpeg_size) const {
   // Decompress header of JPEG for metadata
   int width;
   int height;

@@ -3,10 +3,11 @@
 #include <CL/cl.h>
 
 #include <fstream>
-#include <iostream>
+#include <ostream>
 #include <stdexcept>
 
 #include "generate_gaussian.hpp"
+#include "jpeg_decompressor.hpp"
 #include "open_cl_interface.hpp"
 
 #define OPEN_CL_COMPILE_FLAGS "-cl-fast-relaxed-math -w"
@@ -17,8 +18,13 @@ const std::string kBlurScaleHorizontalFile = "blur_and_scale_horizontal.cl";
 const std::string kStabilizeFile = "stabilize_bg_mvt.cl";
 const std::string kCalculateDifferenceFile = "calculate_difference.cl";
 
-MotionDetector::MotionDetector(InputVideoSettings input_vid_settings, MotionConfig motion_config, DeviceConfig device_config)
-    : input_vid_(input_vid_settings), motion_config_(motion_config), device_config_(device_config) {
+MotionDetector::MotionDetector(InputVideoSettings input_vid_settings, MotionConfig motion_config, DeviceConfig device_config, std::ostream* output)
+    : input_vid_(input_vid_settings),
+      motion_config_(motion_config),
+      device_config_(device_config),
+      decompressor_(JpegDecompressor(input_vid_settings.width, input_vid_settings.height, input_vid_settings.frame_format, motion_config.decomp_method)) {
+  info = output;
+
   // Check settings
   ValidateSettings();
   // Calculate Buffer Sizes
@@ -45,7 +51,17 @@ MotionDetector::~MotionDetector() {
   frames_.clear();
 }
 
-bool MotionDetector::DetectOnFrame(unsigned char* frame) {
+bool MotionDetector::DetectOnFrame(unsigned char* frame, unsigned long& size) {
+  unsigned char* decompressed = decompressor_.DecompressImage(frame, size);
+
+  bool motion = DetectOnDecompressedFrame(decompressed);
+
+  delete[] decompressed;
+
+  return motion;
+}
+
+bool MotionDetector::DetectOnDecompressedFrame(unsigned char* frame) {
   // Run processing kernels
   BlurAndScale(frame);
   StabilizeAndCompareFrames();
@@ -71,13 +87,13 @@ cl::Buffer& MotionDetector::BlurAndScale(unsigned char* frame) {
 
   // Queue kernels
   // Vertical Scale
-  error = cmd_queue_.enqueueNDRangeKernel(bs_vertical_kernel_, cl::NullRange, intermediate_scaled_global_work_size_2d_, motion_thread_block_size_2d_);
+  error = cmd_queue_.enqueueNDRangeKernel(bs_vertical_kernel_, cl::NullRange, intermediate_scaled_global_work_size_2d_, cl::NullRange);
   if (error != CL_SUCCESS) throw std::runtime_error("Failed to queue OpenCL kernel with error code: " + std::to_string(error));
   error = cmd_queue_.finish();
   if (error != CL_SUCCESS) throw std::runtime_error("Error while running vertical blur and scale kernel with error code: " + std::to_string(error));
 
   // Horizontal scale
-  error = cmd_queue_.enqueueNDRangeKernel(bs_horizontal_kernel_, cl::NullRange, scaled_global_work_size_2d_, motion_thread_block_size_2d_);
+  error = cmd_queue_.enqueueNDRangeKernel(bs_horizontal_kernel_, cl::NullRange, scaled_global_work_size_2d_, cl::NullRange);
   if (error != CL_SUCCESS) throw std::runtime_error("Failed to queue OpenCL kernel with error code: " + std::to_string(error));
   error = cmd_queue_.finish();
   if (error != CL_SUCCESS) throw std::runtime_error("Error while running vertical blur and scale kernel with error code: " + std::to_string(error));
@@ -112,7 +128,7 @@ cl::Buffer& MotionDetector::StabilizeAndCompareFrames() {
   if (error != CL_SUCCESS) throw std::runtime_error("Error writing background to remove buffer with error code: " + std::to_string(error));
 
   // Queue kernel
-  error = cmd_queue_.enqueueNDRangeKernel(stabilize_kernel_, cl::NullRange, scaled_global_work_size_1d_, motion_thread_block_size_1d_);
+  error = cmd_queue_.enqueueNDRangeKernel(stabilize_kernel_, cl::NullRange, scaled_global_work_size_1d_, cl::NullRange);
   if (error != CL_SUCCESS) throw std::runtime_error("Failed to queue OpenCL kernel with error code: " + std::to_string(error));
   error = cmd_queue_.finish();
   if (error != CL_SUCCESS) throw std::runtime_error("Error while running vertical blur and scale kernel with error code: " + std::to_string(error));
@@ -142,7 +158,7 @@ void MotionDetector::ValidateSettings() const {
 void MotionDetector::InitOpenCL() {
   // Select device
   device_ = OpenCLInterface::GetDevice(device_config_);
-  std::cout << "Selected device: " + device_.getInfo<CL_DEVICE_NAME>() << std::endl;
+  *info << "Selected device: " + device_.getInfo<CL_DEVICE_NAME>() << std::endl;
   // Create context and command queue
   int error = CL_SUCCESS;
   context_ = cl::Context(device_);
@@ -152,27 +168,10 @@ void MotionDetector::InitOpenCL() {
 }
 
 void MotionDetector::InitWorkSizes() {
-  // Calculate maximun thread block size possible
-  unsigned int max_thread_block_size_x = 1;
-  for (unsigned int i = 1; i < device_.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>() && i < MAX_WORK_GROUP_SIZE; i++) {
-    if (scaled_width_ % i == 0 && input_vid_.width) max_thread_block_size_x = i;
-  }
-  unsigned int max_thread_block_size_y = 1;
-  for (unsigned int i = 1; i < device_.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>() && i < MAX_WORK_GROUP_SIZE; i++) {
-    if (scaled_height_ % i == 0) max_thread_block_size_y = i;
-  }
-  std::cout << "Running motion detection with 2D thread block size: " << max_thread_block_size_x << "x" << max_thread_block_size_y << std::endl;
-  unsigned int max_thread_block_size = 1;
-  for (unsigned int i = 1; i < device_.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>() && i < MAX_WORK_GROUP_SIZE; i++) {
-    if ((scaled_height_ * scaled_width_) % i == 0) max_thread_block_size = i;
-  }
-  std::cout << "Running motion detection with 1D thread block size: " << max_thread_block_size << std::endl;
   // Create 2D ranges
-  motion_thread_block_size_2d_ = cl::NDRange(max_thread_block_size_x, max_thread_block_size_y);
   intermediate_scaled_global_work_size_2d_ = cl::NDRange(input_vid_.width, scaled_height_);
   scaled_global_work_size_2d_ = cl::NDRange(scaled_width_, scaled_height_);
   // Create 1D ranges
-  motion_thread_block_size_1d_ = cl::NDRange(max_thread_block_size);
   scaled_global_work_size_1d_ = cl::NDRange(static_cast<unsigned int>(scaled_width_ * scaled_height_));
 }
 
@@ -183,7 +182,7 @@ void MotionDetector::CalculateBufferSizes() {
   // Calculate scaled width and height
   scaled_width_ = width_margin_removed / motion_config_.scale_denominator;
   scaled_height_ = height_margin_removed / motion_config_.scale_denominator;
-  std::cout << "Scaled frame resolution: " << scaled_width_ << "x" << scaled_height_ << std::endl;
+  *info << "Scaled frame resolution: " << scaled_width_ << "x" << scaled_height_ << std::endl;
 
   // Calculate buffer sizes
   input_frame_buffer_size_ = input_vid_.width * input_vid_.height;
@@ -517,10 +516,10 @@ cl::Program MotionDetector::LoadProgram(const std::string& filename) {
   // Build program and throw errors if fails
   error = program.build(OPEN_CL_COMPILE_FLAGS);
   if (error != CL_SUCCESS) {
-    std::cout << "OpenCL build failed! Build Log:\n" << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device_) << std::endl;
+    *info << "OpenCL build failed! Build Log:\n" << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device_) << std::endl;
     throw std::runtime_error("Failed to compile OpenCL kernel file: " + filename);
   }
-  std::cout << "Successfully compiled OpenCL kernel file: " + filename << std::endl;
+  *info << "Successfully compiled OpenCL kernel file: " + filename << std::endl;
 
   return program;
 }

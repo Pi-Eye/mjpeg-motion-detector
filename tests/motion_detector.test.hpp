@@ -2,6 +2,7 @@
 #include <catch2/catch_all.hpp>
 #include <cmath>
 #include <limits>
+#include <ostream>
 
 #define private public  // To test steps of motion detection
 #include "motion_detector.hpp"
@@ -9,13 +10,15 @@
 const int kDevice = 0;              // kSpecific device to run tests on
 const int kErrorMarginAllowed = 3;  // How different pixel values are allowed to be due to rounding
 
+std::ostream* empty_output = new std::ostream(0);
+
 TEST_CASE("Construct Detector") {
   SECTION("With Valid Input") {
     InputVideoSettings input_vid_set_sol = {640, 480, DecompFrameFormat::kRGB};
     MotionConfig motion_config_sol = {1, 1, 10, 5, 5, 0.5};
     DeviceConfig device_config_sol = {DeviceType::kGPU, 2};
 
-    REQUIRE_NOTHROW(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
+    REQUIRE_NOTHROW(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output));
   }
 
   SECTION("With Invalid Input") {
@@ -24,56 +27,56 @@ TEST_CASE("Construct Detector") {
     MotionConfig motion_config_sol = {1, 1, 10, 5, 0, 0.5};
     DeviceConfig device_config_sol = {DeviceType::kGPU, 2};
 
-    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
+    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output));
 
     // Invalid Height
     input_vid_set_sol = {640, 0, DecompFrameFormat::kRGB};
     motion_config_sol = {1, 1, 10, 5, 0, 0.5};
     device_config_sol = {DeviceType::kGPU, 2};
 
-    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
+    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output));
 
     // Invalid Scale Denominator
     input_vid_set_sol = {640, 480, DecompFrameFormat::kRGB};
     motion_config_sol = {1, 0, 10, 5, 0, 0.5};
     device_config_sol = {DeviceType::kGPU, 2};
 
-    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
+    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output));
 
     // Invalid Background Stabilization Length
     input_vid_set_sol = {640, 480, DecompFrameFormat::kRGB};
     motion_config_sol = {1, 1, 0, 5, 0, 0.5};
     device_config_sol = {DeviceType::kGPU, 2};
 
-    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
+    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output));
 
     // Invalid Movement Stabilization Length
     input_vid_set_sol = {640, 480, DecompFrameFormat::kRGB};
     motion_config_sol = {1, 1, 10, 0, 0, 0.5};
     device_config_sol = {DeviceType::kGPU, 2};
 
-    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
+    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output));
 
     // Invalid Minimun Changed Pixels
     input_vid_set_sol = {640, 480, DecompFrameFormat::kRGB};
     motion_config_sol = {1, 1, 10, 5, 0, -0.5};
     device_config_sol = {DeviceType::kGPU, 2};
 
-    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
+    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output));
 
     // Invalid Minimun Changed Pixels
     input_vid_set_sol = {640, 480, DecompFrameFormat::kRGB};
     motion_config_sol = {1, 1, 10, 5, 0, 1.1};
     device_config_sol = {DeviceType::kGPU, 2};
 
-    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
+    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output));
 
     // Invalid Gaussian Size and Scale Denominator Combination
     input_vid_set_sol = {3, 3, DecompFrameFormat::kRGB};
     motion_config_sol = {1, 2, 10, 5, 0, 0.1};
     device_config_sol = {DeviceType::kGPU, 2};
 
-    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol));
+    REQUIRE_THROWS(MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output));
   }
 }
 
@@ -96,7 +99,7 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionConfig motion_config_sol = {0, 1, 10, 2, 0, 0.0};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
 
     cl::Buffer blurred = motion_detector.BlurAndScale(data0);
 
@@ -120,7 +123,7 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionConfig motion_config_sol = {1, 1, 10, 2, 0, 0.0};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data0);
 
     unsigned char* pixels = new unsigned char[1];
@@ -135,7 +138,7 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionConfig motion_config_sol = {0, 2, 10, 2, 0, 0.0};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data0);
 
     unsigned char* pixels = new unsigned char[1];
@@ -150,7 +153,7 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionConfig motion_config_sol = {0, 3, 10, 2, 0, 0.0};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data0);
 
     unsigned char* pixels = new unsigned char[1];
@@ -165,7 +168,7 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionConfig motion_config_sol = {0, 2, 10, 2, 0, 0.0};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
     unsigned char* pixels = new unsigned char[4 * 4];
@@ -195,7 +198,7 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionConfig motion_config_sol = {0, 3, 10, 2, 0, 0.0};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
     unsigned char* pixels = new unsigned char[3 * 3];
@@ -218,7 +221,7 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionConfig motion_config_sol = {1, 2, 10, 2, 0, 0.0};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
     unsigned char* pixels = new unsigned char[2 * 2];
@@ -236,7 +239,7 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionConfig motion_config_sol = {1, 3, 10, 2, 0, 0.0};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
     unsigned char* pixels = new unsigned char[1];
@@ -251,7 +254,7 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionConfig motion_config_sol = {1, 1, 10, 2, 0, 0.0};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
     unsigned char* pixels = new unsigned char[7 * 7];
@@ -286,10 +289,10 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
 
   SECTION("With No Blur") {
     InputVideoSettings input_vid_set_sol = {3, 3, DecompFrameFormat::kGray};
-    MotionConfig motion_config_sol = {0, 1, 10, 2, 0, 0.0};
+    MotionConfig motion_config_sol = {0, 1, 10, 2, 0, 0.0, DecompFrameMethod::kAccurate};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
 
     cl::Buffer blurred = motion_detector.BlurAndScale(data0);
 
@@ -310,10 +313,10 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
 
   SECTION("With 3x3 Blur") {
     InputVideoSettings input_vid_set_sol = {3, 3, DecompFrameFormat::kGray};
-    MotionConfig motion_config_sol = {1, 1, 10, 2, 0, 0.0};
+    MotionConfig motion_config_sol = {1, 1, 10, 2, 0, 0.0, DecompFrameMethod::kAccurate};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data0);
 
     unsigned char* pixels = new unsigned char[1];
@@ -328,7 +331,7 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
     MotionConfig motion_config_sol = {0, 2, 10, 2, 0, 0.0};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data0);
 
     unsigned char* pixels = new unsigned char[1];
@@ -340,10 +343,10 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
 
   SECTION("With 1/3x Scale") {
     InputVideoSettings input_vid_set_sol = {3, 3, DecompFrameFormat::kGray};
-    MotionConfig motion_config_sol = {0, 3, 10, 2, 0, 0.0};
+    MotionConfig motion_config_sol = {0, 3, 10, 2, 0, 0.0, DecompFrameMethod::kAccurate};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data0);
 
     unsigned char* pixels = new unsigned char[1];
@@ -355,10 +358,10 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
 
   SECTION("With 1/2x Scale On Larger Image") {
     InputVideoSettings input_vid_set_sol = {9, 9, DecompFrameFormat::kGray};
-    MotionConfig motion_config_sol = {0, 2, 10, 2, 0, 0.0};
+    MotionConfig motion_config_sol = {0, 2, 10, 2, 0, 0.0, DecompFrameMethod::kAccurate};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
     unsigned char* pixels = new unsigned char[4 * 4];
@@ -385,10 +388,10 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
 
   SECTION("With 1/3x Scale On Larger Image") {
     InputVideoSettings input_vid_set_sol = {9, 9, DecompFrameFormat::kGray};
-    MotionConfig motion_config_sol = {0, 3, 10, 2, 0, 0.0};
+    MotionConfig motion_config_sol = {0, 3, 10, 2, 0, 0.0, DecompFrameMethod::kAccurate};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
     unsigned char* pixels = new unsigned char[3 * 3];
@@ -408,10 +411,10 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
 
   SECTION("With 1/2x Scale and 3x3 Blur On Larger Image") {
     InputVideoSettings input_vid_set_sol = {9, 9, DecompFrameFormat::kGray};
-    MotionConfig motion_config_sol = {1, 2, 10, 2, 0, 0.0};
+    MotionConfig motion_config_sol = {1, 2, 10, 2, 0, 0.0, DecompFrameMethod::kAccurate};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
     unsigned char* pixels = new unsigned char[2 * 2];
@@ -426,10 +429,10 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
 
   SECTION("With 1/3x Scale and 3x3 Blur On Larger Image") {
     InputVideoSettings input_vid_set_sol = {9, 9, DecompFrameFormat::kGray};
-    MotionConfig motion_config_sol = {1, 3, 10, 2, 0, 0.0};
+    MotionConfig motion_config_sol = {1, 3, 10, 2, 0, 0.0, DecompFrameMethod::kAccurate};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
     unsigned char* pixels = new unsigned char[1];
@@ -441,10 +444,10 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
 
   SECTION("With No Scale and 3x3 Blur On Larger Image") {
     InputVideoSettings input_vid_set_sol = {9, 9, DecompFrameFormat::kGray};
-    MotionConfig motion_config_sol = {1, 1, 10, 2, 0, 0.0};
+    MotionConfig motion_config_sol = {1, 1, 10, 2, 0, 0.0, DecompFrameMethod::kAccurate};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
     unsigned char* pixels = new unsigned char[7 * 7];
@@ -482,10 +485,10 @@ TEST_CASE("Stabilize And Compare Frames Step") {
 
   SECTION("Compare Difference On The Same Frames") {
     InputVideoSettings input_vid_set_sol = {3, 3, DecompFrameFormat::kRGB};
-    MotionConfig motion_config_sol = {0, 1, 1, 1, kErrorMarginAllowed, 0.0};
+    MotionConfig motion_config_sol = {0, 1, 1, 1, kErrorMarginAllowed, 0.0, DecompFrameMethod::kAccurate};
     DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+    MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
 
     // Fill with 2 white frames
     motion_detector.BlurAndScale(data0);
@@ -505,10 +508,11 @@ TEST_CASE("Stabilize And Compare Frames Step") {
   SECTION("Compare Difference On The Different Frames") {
     {
       InputVideoSettings input_vid_set_sol = {3, 3, DecompFrameFormat::kRGB};
-      MotionConfig motion_config_sol = {0, 1, 1, 1, (127 - kErrorMarginAllowed), 0.0};  // Check that difference is above the expected value (127) within margin
+      MotionConfig motion_config_sol = {
+          0, 1, 1, 1, (127 - kErrorMarginAllowed), 0.0, DecompFrameMethod::kAccurate};  // Check that difference is above the expected value (127) within margin
       DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-      MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+      MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
 
       // Fill with 1 black and 1 grey frame
       motion_detector.BlurAndScale(data1);
@@ -527,10 +531,11 @@ TEST_CASE("Stabilize And Compare Frames Step") {
 
     {  // Do the same thing but with a higher threshold so there should be no change
       InputVideoSettings input_vid_set_sol = {3, 3, DecompFrameFormat::kRGB};
-      MotionConfig motion_config_sol = {0, 1, 1, 1, (127 + kErrorMarginAllowed), 0.0};  // Check that difference is above the expected value (127) within margin
+      MotionConfig motion_config_sol = {
+          0, 1, 1, 1, (127 + kErrorMarginAllowed), 0.0, DecompFrameMethod::kAccurate};  // Check that difference is above the expected value (127) within margin
       DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-      MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+      MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
 
       // Fill with 1 black and 1 grey frame
       motion_detector.BlurAndScale(data1);
@@ -551,10 +556,11 @@ TEST_CASE("Stabilize And Compare Frames Step") {
   SECTION("Compare Difference On The Different Frames While Averaging Background") {
     {
       InputVideoSettings input_vid_set_sol = {3, 3, DecompFrameFormat::kRGB};
-      MotionConfig motion_config_sol = {0, 1, 10, 1, (25 - kErrorMarginAllowed), 0.0};  // Check that difference is above the expected value (25) within margin
+      MotionConfig motion_config_sol = {
+          0, 1, 10, 1, (25 - kErrorMarginAllowed), 0.0, DecompFrameMethod::kAccurate};  // Check that difference is above the expected value (25) within margin
       DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-      MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+      MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
 
       // Fill with 1 black and 10 white frames
       motion_detector.BlurAndScale(data1);
@@ -575,10 +581,11 @@ TEST_CASE("Stabilize And Compare Frames Step") {
 
     {  // Do the same thing but with a higher threshold so there should be no change
       InputVideoSettings input_vid_set_sol = {3, 3, DecompFrameFormat::kRGB};
-      MotionConfig motion_config_sol = {0, 1, 10, 1, (25 + kErrorMarginAllowed), 0.0};  // Check that difference is above the expected value (25) within margin
+      MotionConfig motion_config_sol = {
+          0, 1, 10, 1, (25 + kErrorMarginAllowed), 0.0, DecompFrameMethod::kAccurate};  // Check that difference is above the expected value (25) within margin
       DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-      MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+      MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
 
       // Fill with 1 black and 10 white frames
       motion_detector.BlurAndScale(data1);
@@ -601,10 +608,11 @@ TEST_CASE("Stabilize And Compare Frames Step") {
   SECTION("Compare Difference On The Different Frames While Averaging Movement") {
     {
       InputVideoSettings input_vid_set_sol = {3, 3, DecompFrameFormat::kRGB};
-      MotionConfig motion_config_sol = {0, 1, 1, 10, (25 - kErrorMarginAllowed), 0.0};  // Check that difference is above the expected value (25) within margin
+      MotionConfig motion_config_sol = {
+          0, 1, 1, 10, (25 - kErrorMarginAllowed), 0.0, DecompFrameMethod::kAccurate};  // Check that difference is above the expected value (25) within margin
       DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-      MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+      MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
 
       // Fill with 10 black and 1 white frame
       for (int i = 0; i < 10; i++) {
@@ -625,10 +633,11 @@ TEST_CASE("Stabilize And Compare Frames Step") {
 
     {  // Do the same thing but with a higher threshold so there should be no change
       InputVideoSettings input_vid_set_sol = {3, 3, DecompFrameFormat::kRGB};
-      MotionConfig motion_config_sol = {0, 1, 1, 10, (25 + kErrorMarginAllowed), 0.0};  // Check that difference is above the expected value (25) within margin
+      MotionConfig motion_config_sol = {
+          0, 1, 1, 10, (25 + kErrorMarginAllowed), 0.0, DecompFrameMethod::kAccurate};  // Check that difference is above the expected value (25) within margin
       DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-      MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+      MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
 
       // Fill with 10 black and 1 white frame
       for (int i = 0; i < 10; i++) {
@@ -671,26 +680,26 @@ TEST_CASE("Detect On Frame") {
   SECTION("With Half Changed Frame") {
     {
       InputVideoSettings input_vid_set_sol = {3, 3, DecompFrameFormat::kGray};
-      MotionConfig motion_config_sol = {0, 1, 1, 1, 5, 0.5};
+      MotionConfig motion_config_sol = {0, 1, 1, 1, 5, 0.5, DecompFrameMethod::kAccurate};
       DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-      MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+      MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
 
-      motion_detector.DetectOnFrame(data0);
-      bool motion = motion_detector.DetectOnFrame(data1);
+      motion_detector.DetectOnDecompressedFrame(data0);
+      bool motion = motion_detector.DetectOnDecompressedFrame(data1);
 
       REQUIRE(motion == true);
     }
 
     {  // Same thing again with difference threshold to ensure threshold is checked
       InputVideoSettings input_vid_set_sol = {3, 3, DecompFrameFormat::kGray};
-      MotionConfig motion_config_sol = {0, 1, 1, 1, 5, 0.6};
+      MotionConfig motion_config_sol = {0, 1, 1, 1, 5, 0.6, DecompFrameMethod::kAccurate};
       DeviceConfig device_config_sol = {DeviceType::kSpecific, kDevice};
 
-      MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol);
+      MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
 
-      motion_detector.DetectOnFrame(data0);
-      bool motion = motion_detector.DetectOnFrame(data1);
+      motion_detector.DetectOnDecompressedFrame(data0);
+      bool motion = motion_detector.DetectOnDecompressedFrame(data1);
 
       REQUIRE(motion == false);
     }

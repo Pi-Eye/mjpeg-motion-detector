@@ -3,6 +3,7 @@
 
 #include <CL/opencl.h>
 
+#include <ostream>
 #include <vector>
 
 #include "jpeg_decompressor.hpp"
@@ -30,6 +31,7 @@ struct InputVideoSettings {
  * motion_stabil_length:  number of frames to average to form stabilized motion
  * min_pixel_diff:        minimum difference between pixels to count as different
  * min_changed_pixels:    minimum pecentage of pixels that need to change in a frame to count as a different frame
+ * decomp_method:         decompression method to use for jpeg
  */
 struct MotionConfig {
   unsigned int gaussian_size;
@@ -38,17 +40,7 @@ struct MotionConfig {
   unsigned int motion_stabil_length;
   unsigned int min_pixel_diff;
   float min_changed_pixels;
-};
-
-/**
- * StabilizedFrames - The pair of stabilized frames
- *
- * stabilized_bg:   averaged background frames
- * stabilized_mvt:  averaged movement frames
- */
-struct StabilizedFrames {
-  cl::Buffer& stabilized_bg;
-  cl::Buffer& stabilized_mvt;
+  DecompFrameMethod decomp_method;
 };
 
 /**
@@ -63,7 +55,7 @@ class MotionDetector {
    * motion_config:        Settings for how exactly to run motion detection
    * device_config:        Settings for which device to run motion detection on
    */
-  MotionDetector(InputVideoSettings input_vid_settings, MotionConfig motion_config, DeviceConfig device_config);
+  MotionDetector(InputVideoSettings input_vid_settings, MotionConfig motion_config, DeviceConfig device_config, std::ostream* output);
 
   /**
    * ~DetectMotion() - Deconstructor for DetectMotion
@@ -71,13 +63,22 @@ class MotionDetector {
   ~MotionDetector();
 
   /**
-   * DetectOnFrame() - Processes a frame for motion detection
+   * DetectOnFrame() - Processes a MJPEG frame for motion detection
+   *
+   * frame:     JPEG image
+   * size:      Size of JPEG image buffer
+   * returns:   bool - if motion is detected or not
+   */
+  bool DetectOnFrame(unsigned char* frame, unsigned long& size);
+
+  /**
+   * DetectOnDecompressedFrame() - Processes a decompressed frame for motion detection
    *
    * frame:     image in the format used to construct DetectMotion
    *              (note: image format will not be checked)
    * returns:   bool - if motion is detected or not
    */
-  bool DetectOnFrame(unsigned char* frame);
+  bool DetectOnDecompressedFrame(unsigned char* frame);
 
   /**
    * BlurAndScale() - Blurs and scales an image using selected gaussian size
@@ -142,7 +143,9 @@ class MotionDetector {
    */
   cl::Program LoadProgram(const std::string& filename);
 
-  cl::Device device_;           // PpenCL device motion detection will run on
+  JpegDecompressor decompressor_;  // Jpeg decompressor
+
+  cl::Device device_;           // OpenCL device motion detection will run on
   cl::Context context_;         // OpenCL context for device
   cl::CommandQueue cmd_queue_;  // OpenCL command queue for device
 
@@ -200,6 +203,8 @@ class MotionDetector {
   InputVideoSettings input_vid_;  // Metadata about MJPEG stream coming in
   MotionConfig motion_config_;    // Settings for how exactly to run motion detection
   DeviceConfig device_config_;    // Settings for which device to run motion detection on
+
+  std::ostream* info;  // Output stream for info messages
 };
 
 #endif

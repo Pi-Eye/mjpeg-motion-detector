@@ -11,7 +11,7 @@
 #define JPEG_ALLOWABLE_ERROR 5
 
 struct JpegFile {
-  unsigned int filesize;
+  unsigned long filesize;
   unsigned char* data;
 };
 
