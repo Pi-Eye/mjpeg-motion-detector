@@ -1,17 +1,11 @@
-// NOLINTBEGIN
-#include <CL/cl.hpp>
 #include <iostream>
-#include <string>
 
-#include "generate_gaussian.hpp"
-#include "jpeg_decompressor.hpp"
 #include "motion_detector.hpp"
-#include "open_cl_interface.hpp"
-
-#define THREAD_BLOCK_SIZE 1
 
 int main() {
   try {
+    std::cout << "Hello, World" << std::endl;
+
     // Catch and print all execptions
   } catch (const std::exception& ex) {
     std::cerr << ex.what() << std::endl;
@@ -24,4 +18,3 @@ int main() {
     return -1;
   }
 }
-// NOLINTEND
