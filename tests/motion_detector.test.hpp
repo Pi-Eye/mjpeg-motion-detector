@@ -1,4 +1,4 @@
-// NOLINTBEGIN(readability-magic-numbers)
+// NOLINTBEGIN(readability-*)
 #include <catch2/catch_all.hpp>
 #include <cmath>
 #include <limits>
@@ -83,13 +83,13 @@ TEST_CASE("Construct Detector") {
 TEST_CASE("Blur and Scale Step On RGB Frames") {
   // Smaller image
   PpmFile ppm0 = ReadPpm("../test-images/3x3-color-pixels-rgb.ppm");
-  unsigned char* data0 = new unsigned char[ppm0.data.size()];
+  unsigned char* data0 = new unsigned char[32];  // Little bit extra for aligned memory access for raspi compatability
   for (int i = 0; i < ppm0.data.size(); i++) {
     data0[i] = ppm0.data.at(i);
   }
   // Larger image
   PpmFile ppm1 = ReadPpm("../test-images/9x9-color-pixels-rgb.ppm");
-  unsigned char* data1 = new unsigned char[ppm1.data.size()];
+  unsigned char* data1 = new unsigned char[256];
   for (int i = 0; i < ppm1.data.size(); i++) {
     data1[i] = ppm1.data.at(i);
   }
@@ -103,8 +103,8 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
 
     cl::Buffer blurred = motion_detector.BlurAndScale(data0);
 
-    unsigned char* pixels = new unsigned char[3 * 3];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 3 * 3 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[16];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 16 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     REQUIRE(abs(static_cast<int>(pixels[0]) - 255) < kErrorMarginAllowed);
     REQUIRE(abs(static_cast<int>(pixels[1]) - 170) < kErrorMarginAllowed);
@@ -126,8 +126,8 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data0);
 
-    unsigned char* pixels = new unsigned char[1];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 1 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[8];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 8 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     REQUIRE(abs(static_cast<int>(pixels[0]) - 127) < kErrorMarginAllowed);
     delete[] pixels;
@@ -141,8 +141,8 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data0);
 
-    unsigned char* pixels = new unsigned char[1];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 1 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[8];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 8 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     REQUIRE(abs(static_cast<int>(pixels[0]) - 170) < kErrorMarginAllowed);
     delete[] pixels;
@@ -156,8 +156,8 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data0);
 
-    unsigned char* pixels = new unsigned char[1];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 1 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[8];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 8 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     REQUIRE(abs(static_cast<int>(pixels[0]) - 142) < kErrorMarginAllowed);
     delete[] pixels;
@@ -171,8 +171,8 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
-    unsigned char* pixels = new unsigned char[4 * 4];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 4 * 4 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[16];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 16 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     REQUIRE(abs(static_cast<int>(pixels[0]) - 170) < kErrorMarginAllowed);
     REQUIRE(abs(static_cast<int>(pixels[1]) - 170) < kErrorMarginAllowed);
@@ -201,8 +201,8 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
-    unsigned char* pixels = new unsigned char[3 * 3];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 3 * 3 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[16];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 16 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     REQUIRE(abs(static_cast<int>(pixels[0]) - 142) < kErrorMarginAllowed);
     REQUIRE(abs(static_cast<int>(pixels[1]) - 142) < kErrorMarginAllowed);
@@ -224,8 +224,8 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
-    unsigned char* pixels = new unsigned char[2 * 2];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 2 * 2 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[8];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 8 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     REQUIRE(abs(static_cast<int>(pixels[0]) - 150) < kErrorMarginAllowed);
     REQUIRE(abs(static_cast<int>(pixels[1]) - 142) < kErrorMarginAllowed);
@@ -242,8 +242,8 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
-    unsigned char* pixels = new unsigned char[1];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 1 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[8];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 8 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     REQUIRE(abs(static_cast<int>(pixels[0]) - 142) < kErrorMarginAllowed);
     delete[] pixels;
@@ -257,8 +257,8 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
     MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
-    unsigned char* pixels = new unsigned char[7 * 7];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 7 * 7 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[56];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 56 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     std::vector<int> expected = {127, 139, 142, 127, 139, 142, 127, 124, 144, 139, 124, 144, 139, 124, 142, 154, 157, 142, 154, 157, 142, 127, 139, 142, 127,
                                  139, 142, 127, 124, 144, 139, 124, 144, 139, 124, 142, 154, 157, 142, 154, 157, 142, 127, 139, 142, 127, 139, 142, 127};
@@ -276,13 +276,13 @@ TEST_CASE("Blur and Scale Step On RGB Frames") {
 TEST_CASE("Blur and Scale Step On Grayscale Frames") {
   // Smaller image
   PpmFile ppm0 = ReadPpm("../test-images/3x3-color-pixels-grayscale.ppm");
-  unsigned char* data0 = new unsigned char[ppm0.data.size()];
+  unsigned char* data0 = new unsigned char[16];
   for (int i = 0; i < ppm0.data.size(); i++) {
     data0[i] = ppm0.data.at(i);
   }
   // Larger image
   PpmFile ppm1 = ReadPpm("../test-images/9x9-color-pixels-grayscale.ppm");
-  unsigned char* data1 = new unsigned char[ppm1.data.size()];
+  unsigned char* data1 = new unsigned char[88];
   for (int i = 0; i < ppm1.data.size(); i++) {
     data1[i] = ppm1.data.at(i);
   }
@@ -296,8 +296,8 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
 
     cl::Buffer blurred = motion_detector.BlurAndScale(data0);
 
-    unsigned char* pixels = new unsigned char[3 * 3];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 3 * 3 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[16];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 16 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     REQUIRE(abs(static_cast<int>(pixels[0]) - 255) < kErrorMarginAllowed);
     REQUIRE(abs(static_cast<int>(pixels[1]) - 227) < kErrorMarginAllowed);
@@ -319,8 +319,8 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
     MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data0);
 
-    unsigned char* pixels = new unsigned char[1];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 1 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[8];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 8 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     REQUIRE(abs(static_cast<int>(pixels[0]) - 133) < kErrorMarginAllowed);
     delete[] pixels;
@@ -334,8 +334,8 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
     MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data0);
 
-    unsigned char* pixels = new unsigned char[1];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 1 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[8];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 8 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     REQUIRE(abs(static_cast<int>(pixels[0]) - 185) < kErrorMarginAllowed);
     delete[] pixels;
@@ -349,8 +349,8 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
     MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data0);
 
-    unsigned char* pixels = new unsigned char[1];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 1 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[8];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 8 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     REQUIRE(abs(static_cast<int>(pixels[0]) - 142) < kErrorMarginAllowed);
     delete[] pixels;
@@ -364,8 +364,8 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
     MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
-    unsigned char* pixels = new unsigned char[4 * 4];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 4 * 4 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[16];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 16 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     REQUIRE(abs(static_cast<int>(pixels[0]) - 185) < kErrorMarginAllowed);
     REQUIRE(abs(static_cast<int>(pixels[1]) - 172) < kErrorMarginAllowed);
@@ -394,8 +394,8 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
     MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
-    unsigned char* pixels = new unsigned char[3 * 3];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 3 * 3 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[16];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 16 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     REQUIRE(abs(static_cast<int>(pixels[0]) - 142) < kErrorMarginAllowed);
     REQUIRE(abs(static_cast<int>(pixels[1]) - 142) < kErrorMarginAllowed);
@@ -417,8 +417,8 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
     MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
-    unsigned char* pixels = new unsigned char[2 * 2];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 2 * 2 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[4];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 4 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     REQUIRE(abs(static_cast<int>(pixels[0]) - 146) < kErrorMarginAllowed);
     REQUIRE(abs(static_cast<int>(pixels[1]) - 142) < kErrorMarginAllowed);
@@ -435,8 +435,8 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
     MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
-    unsigned char* pixels = new unsigned char[1];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 1 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[8];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 8 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     REQUIRE(abs(static_cast<int>(pixels[0]) - 142) < kErrorMarginAllowed);
     delete[] pixels;
@@ -450,8 +450,8 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
     MotionDetector motion_detector = MotionDetector(input_vid_set_sol, motion_config_sol, device_config_sol, empty_output);
     cl::Buffer blurred = motion_detector.BlurAndScale(data1);
 
-    unsigned char* pixels = new unsigned char[7 * 7];
-    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 7 * 7 * sizeof(unsigned char), static_cast<void*>(pixels));
+    unsigned char* pixels = new unsigned char[56];
+    motion_detector.cmd_queue_.enqueueReadBuffer(blurred, CL_TRUE, 0, 56 * sizeof(unsigned char), static_cast<void*>(pixels));
 
     std::vector<int> expected = {132, 144, 143, 132, 144, 143, 132, 124, 142, 132, 124, 142, 132, 124, 145, 151, 154, 145, 151, 154, 145, 132, 144, 143, 132,
                                  144, 143, 132, 124, 142, 132, 124, 142, 132, 124, 145, 151, 154, 145, 151, 154, 145, 132, 144, 143, 132, 144, 143, 132};
@@ -468,17 +468,17 @@ TEST_CASE("Blur and Scale Step On Grayscale Frames") {
 
 TEST_CASE("Stabilize And Compare Frames Step") {
   // Fully white frame
-  unsigned char* data0 = new unsigned char[3 * 3 * 3];
+  unsigned char* data0 = new unsigned char[32];
   for (int i = 0; i < 27; i++) {
     data0[i] = 255;
   }
   // Fully black frame
-  unsigned char* data1 = new unsigned char[3 * 3 * 3];
+  unsigned char* data1 = new unsigned char[32];
   for (int i = 0; i < 27; i++) {
     data1[i] = 0;
   }
   // Fully grey frame
-  unsigned char* data2 = new unsigned char[3 * 3 * 3];
+  unsigned char* data2 = new unsigned char[32];
   for (int i = 0; i < 27; i++) {
     data2[i] = 127;
   }
@@ -497,8 +497,8 @@ TEST_CASE("Stabilize And Compare Frames Step") {
 
     cl::Buffer& difference_frame = motion_detector.StabilizeAndCompareFrames();
 
-    bool* differences = new bool[3 * 3];
-    motion_detector.cmd_queue_.enqueueReadBuffer(difference_frame, CL_TRUE, 0, 3 * 3 * sizeof(bool), static_cast<void*>(differences));
+    bool* differences = new bool[16];
+    motion_detector.cmd_queue_.enqueueReadBuffer(difference_frame, CL_TRUE, 0, 16 * sizeof(bool), static_cast<void*>(differences));
 
     // Should be no differences
     for (int i = 0; i < 9; i++) REQUIRE(differences[i] == false);
@@ -521,8 +521,8 @@ TEST_CASE("Stabilize And Compare Frames Step") {
 
       cl::Buffer& difference_frame = motion_detector.StabilizeAndCompareFrames();
 
-      bool* differences = new bool[3 * 3];
-      motion_detector.cmd_queue_.enqueueReadBuffer(difference_frame, CL_TRUE, 0, 3 * 3 * sizeof(bool), static_cast<void*>(differences));
+      bool* differences = new bool[16];
+      motion_detector.cmd_queue_.enqueueReadBuffer(difference_frame, CL_TRUE, 0, 16 * sizeof(bool), static_cast<void*>(differences));
 
       // Should have differences
       for (int i = 0; i < 9; i++) REQUIRE(differences[i] == true);
@@ -544,8 +544,8 @@ TEST_CASE("Stabilize And Compare Frames Step") {
 
       cl::Buffer& difference_frame = motion_detector.StabilizeAndCompareFrames();
 
-      bool* differences = new bool[3 * 3];
-      motion_detector.cmd_queue_.enqueueReadBuffer(difference_frame, CL_TRUE, 0, 3 * 3 * sizeof(bool), static_cast<void*>(differences));
+      bool* differences = new bool[16];
+      motion_detector.cmd_queue_.enqueueReadBuffer(difference_frame, CL_TRUE, 0, 16 * sizeof(bool), static_cast<void*>(differences));
 
       // Should have differences
       for (int i = 0; i < 9; i++) REQUIRE(differences[i] == false);
@@ -571,8 +571,8 @@ TEST_CASE("Stabilize And Compare Frames Step") {
 
       cl::Buffer& difference_frame = motion_detector.StabilizeAndCompareFrames();
 
-      bool* differences = new bool[3 * 3];
-      motion_detector.cmd_queue_.enqueueReadBuffer(difference_frame, CL_TRUE, 0, 3 * 3 * sizeof(bool), static_cast<void*>(differences));
+      bool* differences = new bool[16];
+      motion_detector.cmd_queue_.enqueueReadBuffer(difference_frame, CL_TRUE, 0, 16 * sizeof(bool), static_cast<void*>(differences));
 
       // Should have differences
       for (int i = 0; i < 9; i++) REQUIRE(differences[i] == true);
@@ -596,8 +596,8 @@ TEST_CASE("Stabilize And Compare Frames Step") {
 
       cl::Buffer& difference_frame = motion_detector.StabilizeAndCompareFrames();
 
-      bool* differences = new bool[3 * 3];
-      motion_detector.cmd_queue_.enqueueReadBuffer(difference_frame, CL_TRUE, 0, 3 * 3 * sizeof(bool), static_cast<void*>(differences));
+      bool* differences = new bool[16];
+      motion_detector.cmd_queue_.enqueueReadBuffer(difference_frame, CL_TRUE, 0, 16 * sizeof(bool), static_cast<void*>(differences));
 
       // Should have differences
       for (int i = 0; i < 9; i++) REQUIRE(differences[i] == false);
@@ -623,8 +623,8 @@ TEST_CASE("Stabilize And Compare Frames Step") {
 
       cl::Buffer& difference_frame = motion_detector.StabilizeAndCompareFrames();
 
-      bool* differences = new bool[3 * 3];
-      motion_detector.cmd_queue_.enqueueReadBuffer(difference_frame, CL_TRUE, 0, 3 * 3 * sizeof(bool), static_cast<void*>(differences));
+      bool* differences = new bool[16];
+      motion_detector.cmd_queue_.enqueueReadBuffer(difference_frame, CL_TRUE, 0, 16 * sizeof(bool), static_cast<void*>(differences));
 
       // Should have differences
       for (int i = 0; i < 9; i++) REQUIRE(differences[i] == true);
@@ -648,8 +648,8 @@ TEST_CASE("Stabilize And Compare Frames Step") {
 
       cl::Buffer& difference_frame = motion_detector.StabilizeAndCompareFrames();
 
-      bool* differences = new bool[3 * 3];
-      motion_detector.cmd_queue_.enqueueReadBuffer(difference_frame, CL_TRUE, 0, 3 * 3 * sizeof(bool), static_cast<void*>(differences));
+      bool* differences = new bool[16];
+      motion_detector.cmd_queue_.enqueueReadBuffer(difference_frame, CL_TRUE, 0, 16 * sizeof(bool), static_cast<void*>(differences));
 
       // Should have differences
       for (int i = 0; i < 9; i++) REQUIRE(differences[i] == false);
@@ -664,12 +664,12 @@ TEST_CASE("Stabilize And Compare Frames Step") {
 
 TEST_CASE("Detect On Frame") {
   // Fully white frame
-  unsigned char* data0 = new unsigned char[3 * 3];
+  unsigned char* data0 = new unsigned char[16];
   for (int i = 0; i < 9; i++) {
     data0[i] = 255;
   }
   // Fully half white half black frame
-  unsigned char* data1 = new unsigned char[3 * 3];
+  unsigned char* data1 = new unsigned char[16];
   for (int i = 0; i < 5; i++) {
     data1[i] = 0;
   }
@@ -708,4 +708,4 @@ TEST_CASE("Detect On Frame") {
   delete[] data0;
   delete[] data1;
 }
-// NOLINTEND(readability-magic-numbers)
+// NOLINTEND(readability-*)

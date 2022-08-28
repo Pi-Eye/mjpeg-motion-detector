@@ -17,10 +17,10 @@ struct Configs {
 
 // NOLINTBEGIN(readability-*)
 std::vector<std::pair<unsigned int, unsigned int>> resolutions = {{640, 480}, {1280, 720}, {1920, 1080}};
-std::vector<DecompFrameFormat> frame_formats = {DecompFrameFormat::kRGB, DecompFrameFormat::kGray};
-std::vector<DecompFrameMethod> decomp_methods = {DecompFrameMethod::kAccurate, DecompFrameMethod::kFast};
+std::vector<DecompFrameFormat> frame_formats = {DecompFrameFormat::kRGB};
+std::vector<DecompFrameMethod> decomp_methods = {DecompFrameMethod::kAccurate};
 std::vector<unsigned int> gaussian_sizes = {0, 1, 2};
-std::vector<unsigned int> scale_denominators = {1, 5, 10};
+std::vector<unsigned int> scale_denominators = {10, 5, 1};
 
 std::vector<Configs> PermutateConfigs() {
   std::vector<Configs> configs;
@@ -103,5 +103,7 @@ TEST_CASE("Benchmark Motion Detection") {
     // NOLINTEND(readability-magic-numbers)
 
     BENCHMARK(std::string(name)) { return motion.DetectOnFrame(jpeg_frame.data, jpeg_frame.filesize); };
+
+    delete[] jpeg_frame.data;
   }
 }

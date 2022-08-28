@@ -1,5 +1,8 @@
 #include "open_cl_interface.hpp"
 
+#include <CL/opencl.h>
+
+#include <CL/cl2.hpp>
 #include <iostream>
 #include <vector>
 

@@ -1,7 +1,8 @@
 #include "motion_detector.hpp"
 
-#include <CL/cl.h>
+#include <CL/opencl.h>
 
+#include <CL/cl2.hpp>
 #include <fstream>
 #include <ostream>
 #include <stdexcept>
@@ -10,6 +11,7 @@
 #include "jpeg_decompressor.hpp"
 #include "open_cl_interface.hpp"
 
+#define MEM_ALIGN 8
 #define OPEN_CL_COMPILE_FLAGS "-cl-fast-relaxed-math -w"
 #define MAX_WORK_GROUP_SIZE 1024
 
@@ -169,10 +171,11 @@ void MotionDetector::InitOpenCL() {
 
 void MotionDetector::InitWorkSizes() {
   // Create 2D ranges
-  intermediate_scaled_global_work_size_2d_ = cl::NDRange(input_vid_.width, scaled_height_);
-  scaled_global_work_size_2d_ = cl::NDRange(scaled_width_, scaled_height_);
+  intermediate_scaled_global_work_size_2d_ =
+      cl::NDRange(input_vid_.width + MEM_ALIGN - input_vid_.width % MEM_ALIGN, scaled_height_);  // Height x Width needs to be mem aligned
+  scaled_global_work_size_2d_ = cl::NDRange(scaled_width_ + MEM_ALIGN - scaled_width_ % MEM_ALIGN, scaled_height_);
   // Create 1D ranges
-  scaled_global_work_size_1d_ = cl::NDRange(static_cast<unsigned int>(scaled_width_ * scaled_height_));
+  scaled_global_work_size_1d_ = cl::NDRange(static_cast<unsigned int>(scaled_width_ * scaled_height_ + MEM_ALIGN - (scaled_width_ * scaled_height_) % MEM_ALIGN));
 }
 
 void MotionDetector::CalculateBufferSizes() {
@@ -185,10 +188,16 @@ void MotionDetector::CalculateBufferSizes() {
   *info << "Scaled frame resolution: " << scaled_width_ << "x" << scaled_height_ << std::endl;
 
   // Calculate buffer sizes
-  input_frame_buffer_size_ = input_vid_.width * input_vid_.height;
+  input_frame_buffer_size_ =
+      (input_vid_.width + 1) * (input_vid_.height + 1);  // Add one just so there is room for the possible extra height needed to ensure raspi compatibility
   if (input_vid_.frame_format == DecompFrameFormat::kRGB) input_frame_buffer_size_ *= 3;  // If RGB frames, need 3 times the bytes
-  intermediate_scaled_frame_buffer_size_ = input_vid_.width * scaled_height_;
-  scaled_frame_buffer_size_ = scaled_width_ * scaled_height_;
+  intermediate_scaled_frame_buffer_size_ = (input_vid_.width + 1) * (scaled_height_ + 1);
+  scaled_frame_buffer_size_ = (scaled_width_ + 1) * (scaled_height_ + 1);
+
+  // Make divisible by MEM_ALIGN to ensure aligned memory access for raspi compatability
+  input_frame_buffer_size_ += MEM_ALIGN - (input_frame_buffer_size_ % MEM_ALIGN);
+  intermediate_scaled_frame_buffer_size_ += MEM_ALIGN - (intermediate_scaled_frame_buffer_size_ % MEM_ALIGN);
+  scaled_frame_buffer_size_ += MEM_ALIGN - (scaled_frame_buffer_size_ % MEM_ALIGN);
 
   // Calcualte number of pixels that need to change
   diff_threshold_ = static_cast<unsigned int>(motion_config_.min_changed_pixels * static_cast<double>(scaled_width_ * scaled_height_));
@@ -200,50 +209,50 @@ void MotionDetector::LoadBlurAndScaleBuffers() {
   // gaussian
   std::vector<double> gaussian = GenerateGaussian(motion_config_.gaussian_size);
   gaussian = ScaleGaussian(gaussian, motion_config_.scale_denominator);
-  double* host_gaussian = new double[gaussian.size()];  // convert to double array
-  for (int i = 0; i < gaussian.size(); i++) host_gaussian[i] = gaussian.at(i);
+  float* host_gaussian = new float[gaussian.size() + (gaussian.size() % 2)];  // convert to float array (round size so that it is even for raspi compatability)
+  for (int i = 0; i < gaussian.size(); i++) host_gaussian[i] = static_cast<float>(gaussian.at(i));
   // create buffer object
-  gaussian_ = cl::Buffer(context_, CL_MEM_READ_ONLY, gaussian.size() * sizeof(double), nullptr, &error);
+  gaussian_ = cl::Buffer(context_, CL_MEM_READ_ONLY, (gaussian.size() + (gaussian.size() % 2)) * sizeof(float), nullptr, &error);
   if (error != CL_SUCCESS) throw std::runtime_error("Error creating gaussian kernel buffer with error code: " + std::to_string(error));
   // write to OpenCL device
-  error = cmd_queue_.enqueueWriteBuffer(gaussian_, CL_TRUE, 0, gaussian.size() * sizeof(double), static_cast<void*>(host_gaussian));
+  error = cmd_queue_.enqueueWriteBuffer(gaussian_, CL_TRUE, 0, (gaussian.size() + (gaussian.size() % 2)) * sizeof(float), static_cast<void*>(host_gaussian));
   if (error != CL_SUCCESS) throw std::runtime_error("Error writing gaussian kernel buffer with error code: " + std::to_string(error));
   // delete temp host memory
   delete[] host_gaussian;
 
   // gaussian size
-  int* host_gaussian_size = new int[1];
+  int* host_gaussian_size = new int[2];  // 2 instead of 1 to ensure aligned memory access for raspi compatability
   host_gaussian_size[0] = static_cast<int>(gaussian.size());
   // create buffer object
-  gaussian_size_ = cl::Buffer(context_, CL_MEM_READ_ONLY, 1 * sizeof(int), nullptr, &error);
+  gaussian_size_ = cl::Buffer(context_, CL_MEM_READ_ONLY, 2 * sizeof(int), nullptr, &error);
   if (error != CL_SUCCESS) throw std::runtime_error("Error creating gaussian size buffer with error code: " + std::to_string(error));
   // write to OpenCL device
-  error = cmd_queue_.enqueueWriteBuffer(gaussian_size_, CL_TRUE, 0, 1 * sizeof(int), static_cast<void*>(host_gaussian_size));
+  error = cmd_queue_.enqueueWriteBuffer(gaussian_size_, CL_TRUE, 0, 2 * sizeof(int), static_cast<void*>(host_gaussian_size));
   if (error != CL_SUCCESS) throw std::runtime_error("Error writing gaussian size buffer with error code: " + std::to_string(error));
   // delete temp host memory
   delete[] host_gaussian_size;
 
   // scale amount
-  int* host_scale = new int[1];
+  int* host_scale = new int[2];
   host_scale[0] = static_cast<int>(motion_config_.scale_denominator);
   // create buffer object
-  scale_ = cl::Buffer(context_, CL_MEM_READ_ONLY, 1 * sizeof(int), nullptr, &error);
+  scale_ = cl::Buffer(context_, CL_MEM_READ_ONLY, 2 * sizeof(int), nullptr, &error);
   if (error != CL_SUCCESS) throw std::runtime_error("Error creating scale amount buffer with error code: " + std::to_string(error));
   // write to OpenCL device
-  error = cmd_queue_.enqueueWriteBuffer(scale_, CL_TRUE, 0, 1 * sizeof(int), static_cast<void*>(host_scale));
+  error = cmd_queue_.enqueueWriteBuffer(scale_, CL_TRUE, 0, 2 * sizeof(int), static_cast<void*>(host_scale));
   if (error != CL_SUCCESS) throw std::runtime_error("Error writing scale amount buffer with error code: " + std::to_string(error));
   // delete temp host memory
   delete[] host_scale;
 
   // number of colors
-  int* host_colors = new int[1];
+  int* host_colors = new int[2];
   host_colors[0] = static_cast<int>(1);
   if (input_vid_.frame_format == DecompFrameFormat::kRGB) host_colors[0] = static_cast<int>(3);
   // create buffer object
-  colors_ = cl::Buffer(context_, CL_MEM_READ_ONLY, 1 * sizeof(int), nullptr, &error);
+  colors_ = cl::Buffer(context_, CL_MEM_READ_ONLY, 2 * sizeof(int), nullptr, &error);
   if (error != CL_SUCCESS) throw std::runtime_error("Error creating gaussian kernel buffer with error code: " + std::to_string(error));
   // write to OpenCL device
-  error = cmd_queue_.enqueueWriteBuffer(colors_, CL_TRUE, 0, 1 * sizeof(int), static_cast<void*>(host_colors));
+  error = cmd_queue_.enqueueWriteBuffer(colors_, CL_TRUE, 0, 2 * sizeof(int), static_cast<void*>(host_colors));
   if (error != CL_SUCCESS) throw std::runtime_error("Error writing gaussian kernel buffer with error code: " + std::to_string(error));
   // delete temp host memory
   delete[] host_colors;
@@ -261,25 +270,25 @@ void MotionDetector::LoadBlurAndScaleBuffers() {
   delete[] host_input_frame;
 
   // input width
-  int* host_input_width = new int[1];
+  int* host_input_width = new int[2];
   host_input_width[0] = static_cast<int>(input_vid_.width);
   // create buffer object
-  input_width_ = cl::Buffer(context_, CL_MEM_READ_ONLY, 1 * sizeof(int), nullptr, &error);
+  input_width_ = cl::Buffer(context_, CL_MEM_READ_ONLY, 2 * sizeof(int), nullptr, &error);
   if (error != CL_SUCCESS) throw std::runtime_error("Error creating input width buffer with error code: " + std::to_string(error));
   // write to OpenCL device
-  error = cmd_queue_.enqueueWriteBuffer(input_width_, CL_TRUE, 0, 1 * sizeof(int), static_cast<void*>(host_input_width));
+  error = cmd_queue_.enqueueWriteBuffer(input_width_, CL_TRUE, 0, 2 * sizeof(int), static_cast<void*>(host_input_width));
   if (error != CL_SUCCESS) throw std::runtime_error("Error writing input width buffer with error code: " + std::to_string(error));
   // delete temp host memory
   delete[] host_input_width;
 
   // scaled width
-  int* host_scaled_width = new int[1];
+  int* host_scaled_width = new int[2];
   host_scaled_width[0] = static_cast<int>(scaled_width_);
   // create buffer object
-  output_width_ = cl::Buffer(context_, CL_MEM_READ_ONLY, 1 * sizeof(int), nullptr, &error);
+  output_width_ = cl::Buffer(context_, CL_MEM_READ_ONLY, 2 * sizeof(int), nullptr, &error);
   if (error != CL_SUCCESS) throw std::runtime_error("Error creating scaled width buffer with error code: " + std::to_string(error));
   // write to OpenCL device
-  error = cmd_queue_.enqueueWriteBuffer(output_width_, CL_TRUE, 0, 1 * sizeof(int), static_cast<void*>(host_scaled_width));
+  error = cmd_queue_.enqueueWriteBuffer(output_width_, CL_TRUE, 0, 2 * sizeof(int), static_cast<void*>(host_scaled_width));
   if (error != CL_SUCCESS) throw std::runtime_error("Error writing scaled width buffer with error code: " + std::to_string(error));
   // delete temp host memory
   delete[] host_scaled_width;
@@ -364,10 +373,10 @@ void MotionDetector::LoadBlurAndScaleKernels() {
 void MotionDetector::LoadStabilizeAndCompareBuffers() {
   // Fill frames vector with empty frames
   for (int i = 0; i < motion_config_.bg_stabil_length + motion_config_.motion_stabil_length + 1; i++) {
-    frames_.push_back(new unsigned char[scaled_frame_buffer_size_]);
+    unsigned char* frame = new unsigned char[scaled_frame_buffer_size_];
+    frames_.push_back(frame);
     for (int j = 0; j < scaled_frame_buffer_size_; j++) frames_.at(i)[j] = 0;  // initialize to 0
   }
-
   // Create buffers
   int error = CL_SUCCESS;
   // background frame to remove
@@ -395,61 +404,61 @@ void MotionDetector::LoadStabilizeAndCompareBuffers() {
   delete[] host_mvt_to_remove;
 
   // background length
-  double* host_bg_len = new double[1];
-  host_bg_len[0] = static_cast<double>(motion_config_.bg_stabil_length);
+  float* host_bg_len = new float[2];  // 2 instead of 1 to ensure aligned memory access for raspi compatability
+  host_bg_len[0] = static_cast<float>(motion_config_.bg_stabil_length);
   // create buffer object
-  bg_length_ = cl::Buffer(context_, CL_MEM_READ_ONLY, 1 * sizeof(double), nullptr, &error);
+  bg_length_ = cl::Buffer(context_, CL_MEM_READ_ONLY, 2 * sizeof(float), nullptr, &error);
   if (error != CL_SUCCESS) throw std::runtime_error("Error creating background length buffer with error code: " + std::to_string(error));
   // write to OpenCL device
-  error = cmd_queue_.enqueueWriteBuffer(bg_length_, CL_TRUE, 0, 1 * sizeof(double), static_cast<void*>(host_bg_len));
+  error = cmd_queue_.enqueueWriteBuffer(bg_length_, CL_TRUE, 0, 2 * sizeof(float), static_cast<void*>(host_bg_len));
   if (error != CL_SUCCESS) throw std::runtime_error("Error writing background length buffer with error code: " + std::to_string(error));
   // delete temp host memory
   delete[] host_bg_len;
 
   // movement length
-  double* host_mvt_len = new double[1];
-  host_mvt_len[0] = static_cast<double>(motion_config_.motion_stabil_length);
+  float* host_mvt_len = new float[2];
+  host_mvt_len[0] = static_cast<float>(motion_config_.motion_stabil_length);
   // create buffer object
-  mvt_length_ = cl::Buffer(context_, CL_MEM_READ_ONLY, 1 * sizeof(double), nullptr, &error);
+  mvt_length_ = cl::Buffer(context_, CL_MEM_READ_ONLY, 2 * sizeof(float), nullptr, &error);
   if (error != CL_SUCCESS) throw std::runtime_error("Error creating movement length buffer with error code: " + std::to_string(error));
   // write to OpenCL device
-  error = cmd_queue_.enqueueWriteBuffer(mvt_length_, CL_TRUE, 0, 1 * sizeof(double), static_cast<void*>(host_mvt_len));
+  error = cmd_queue_.enqueueWriteBuffer(mvt_length_, CL_TRUE, 0, 2 * sizeof(float), static_cast<void*>(host_mvt_len));
   if (error != CL_SUCCESS) throw std::runtime_error("Error writing movement length buffer with error code: " + std::to_string(error));
   // delete temp host memory
   delete[] host_mvt_len;
 
   // stabilized background frame
-  double* host_bg = new double[scaled_frame_buffer_size_];
+  float* host_bg = new float[scaled_frame_buffer_size_];
   for (int i = 0; i < scaled_frame_buffer_size_; i++) host_bg[i] = 0;  // initialize to 0
   // create buffer object
-  stabilized_background_ = cl::Buffer(context_, CL_MEM_READ_WRITE, scaled_frame_buffer_size_ * sizeof(double), nullptr, &error);
+  stabilized_background_ = cl::Buffer(context_, CL_MEM_READ_WRITE, scaled_frame_buffer_size_ * sizeof(float), nullptr, &error);
   if (error != CL_SUCCESS) throw std::runtime_error("Error creating stabilized background buffer with error code: " + std::to_string(error));
   // write to OpenCL device
-  error = cmd_queue_.enqueueWriteBuffer(stabilized_background_, CL_TRUE, 0, scaled_frame_buffer_size_ * sizeof(double), static_cast<void*>(host_bg));
+  error = cmd_queue_.enqueueWriteBuffer(stabilized_background_, CL_TRUE, 0, scaled_frame_buffer_size_ * sizeof(float), static_cast<void*>(host_bg));
   if (error != CL_SUCCESS) throw std::runtime_error("Error writing stabilized background buffer with error code: " + std::to_string(error));
   // delete temp host memory
   delete[] host_bg;
 
   // stabilized movement frame
-  double* host_mvt = new double[scaled_frame_buffer_size_];
+  float* host_mvt = new float[scaled_frame_buffer_size_];
   for (int i = 0; i < scaled_frame_buffer_size_; i++) host_mvt[i] = 0;  // initialize to 0
   // create buffer object
-  stabilized_movement_ = cl::Buffer(context_, CL_MEM_READ_WRITE, scaled_frame_buffer_size_ * sizeof(double), nullptr, &error);
+  stabilized_movement_ = cl::Buffer(context_, CL_MEM_READ_WRITE, scaled_frame_buffer_size_ * sizeof(float), nullptr, &error);
   if (error != CL_SUCCESS) throw std::runtime_error("Error creating stabilized movement buffer with error code: " + std::to_string(error));
   // write to OpenCL device
-  error = cmd_queue_.enqueueWriteBuffer(stabilized_movement_, CL_TRUE, 0, scaled_frame_buffer_size_ * sizeof(double), static_cast<void*>(host_mvt));
+  error = cmd_queue_.enqueueWriteBuffer(stabilized_movement_, CL_TRUE, 0, scaled_frame_buffer_size_ * sizeof(float), static_cast<void*>(host_mvt));
   if (error != CL_SUCCESS) throw std::runtime_error("Error writing stabilized movement buffer with error code: " + std::to_string(error));
   // delete temp host memory
   delete[] host_mvt;
 
   // pixel difference threshold
-  unsigned int* host_pix_diff_thresh = new unsigned int[1];
-  host_pix_diff_thresh[0] = motion_config_.min_pixel_diff;
+  int* host_pix_diff_thresh = new int[2];
+  host_pix_diff_thresh[0] = static_cast<int>(motion_config_.min_pixel_diff);
   // create buffer object
-  pixel_diff_threshold_ = cl::Buffer(context_, CL_MEM_READ_ONLY, 1 * sizeof(unsigned int), nullptr, &error);
+  pixel_diff_threshold_ = cl::Buffer(context_, CL_MEM_READ_ONLY, 2 * sizeof(int), nullptr, &error);
   if (error != CL_SUCCESS) throw std::runtime_error("Error creating pixel difference threshold buffer with error code: " + std::to_string(error));
   // write to OpenCL device
-  error = cmd_queue_.enqueueWriteBuffer(pixel_diff_threshold_, CL_TRUE, 0, 1 * sizeof(unsigned int), static_cast<void*>(host_pix_diff_thresh));
+  error = cmd_queue_.enqueueWriteBuffer(pixel_diff_threshold_, CL_TRUE, 0, 2 * sizeof(int), static_cast<void*>(host_pix_diff_thresh));
   if (error != CL_SUCCESS) throw std::runtime_error("Error writing pixel difference threshold buffer with error code: " + std::to_string(error));
   // delete temp host memory
   delete[] host_pix_diff_thresh;
@@ -520,6 +529,5 @@ cl::Program MotionDetector::LoadProgram(const std::string& filename) {
     throw std::runtime_error("Failed to compile OpenCL kernel file: " + filename);
   }
   *info << "Successfully compiled OpenCL kernel file: " + filename << std::endl;
-
   return program;
 }

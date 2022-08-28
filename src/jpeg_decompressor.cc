@@ -13,13 +13,13 @@ JpegDecompressor::JpegDecompressor(unsigned int width, unsigned int height, Deco
   switch (frame_format) {
     case (DecompFrameFormat::kGray): {
       pixel_format_ = TJPF::TJPF_GRAY;
-      decompressed_size_ = width_ * height_;
+      decompressed_size_ = (width_ + 1) * (height_ + 1);
       break;
     }
     case (DecompFrameFormat::kRGB):
     default: {
       pixel_format_ = TJPF::TJPF_RGB;
-      decompressed_size_ = width_ * height_ * 3;
+      decompressed_size_ = (width_ + 1) * (height_ + 1) * 3;
       break;
     }
   }

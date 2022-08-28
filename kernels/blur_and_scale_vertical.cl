@@ -1,12 +1,14 @@
-kernel void blur_and_scale_vertical(global const double* gaussian, global const int* gaussian_size, global const int* scale, global const int* colors,
+kernel void blur_and_scale_vertical(global const float* gaussian, global const int* gaussian_size, global const int* scale, global const int* colors,
                                     global const unsigned char* frame, global const int* width, global unsigned char* scaled) {
   const int x = get_global_id(0);
   const int y = get_global_id(1);
 
+  if (x >= width[0]) return;
+
   // Get the y start location of input frame (x is the same since this is just a vertical scale down)
   const int input_frame_y_start = scale[0] * y;
 
-  double sum = 0;
+  float sum = 0;
   // Iterate through the gaussian
   for (int i = 0; i < gaussian_size[0]; i++) {
     // Find corresponding location in input frame

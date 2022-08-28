@@ -1,7 +1,9 @@
 #ifndef OPEN_CL_INTERFACE_HPP
 #define OPEN_CL_INTERFACE_HPP
 
-#include <CL/cl.hpp>
+#include <CL/opencl.h>
+
+#include <CL/cl2.hpp>
 
 /**
  * DeviceType - Selector for how to select OpenCL device to run motion detection on

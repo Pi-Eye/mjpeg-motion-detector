@@ -3,6 +3,7 @@
 
 #include <CL/opencl.h>
 
+#include <CL/cl2.hpp>
 #include <ostream>
 #include <vector>
 

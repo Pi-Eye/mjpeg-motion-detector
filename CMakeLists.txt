@@ -42,11 +42,17 @@ target_link_libraries(${BENCHMARK_EXE_NAME} PRIVATE OpenCL::OpenCL)
 # Find libjpeg-turbo
 find_package(libjpeg-turbo REQUIRED)
 # Link library
-target_link_libraries(${EXE_NAME} PRIVATE libjpeg-turbo::turbojpeg)
+if (WIN32)
+  target_link_libraries(${EXE_NAME} PRIVATE libjpeg-turbo::turbojpeg)
+  target_link_libraries(${TEST_EXE_NAME} PRIVATE libjpeg-turbo::turbojpeg)
+  target_link_libraries(${BENCHMARK_EXE_NAME} PRIVATE libjpeg-turbo::turbojpeg)
+elseif(UNIX)
+  target_link_libraries(${EXE_NAME} PRIVATE libjpeg-turbo::turbojpeg-static)
+  target_link_libraries(${TEST_EXE_NAME} PRIVATE libjpeg-turbo::turbojpeg-static)
+  target_link_libraries(${BENCHMARK_EXE_NAME} PRIVATE libjpeg-turbo::turbojpeg-static)
+endif()
 target_include_directories(${EXE_NAME} PRIVATE ${JPEG_INCLUDE_DIR})
-target_link_libraries(${TEST_EXE_NAME} PRIVATE libjpeg-turbo::turbojpeg)
 target_include_directories(${TEST_EXE_NAME} PRIVATE ${JPEG_INCLUDE_DIR})
-target_link_libraries(${BENCHMARK_EXE_NAME} PRIVATE libjpeg-turbo::turbojpeg)
 target_include_directories(${BENCHMARK_EXE_NAME} PRIVATE ${JPEG_INCLUDE_DIR})
 
 # Find Catch2
