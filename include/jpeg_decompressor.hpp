@@ -46,7 +46,7 @@ class JpegDecompressor {
    * jpeg_size:         Size of JPEG image to decompress in bytes
    * returns:           unsigned char* - char array of decompressed image
    */
-  unsigned char* DecompressImage(unsigned char* compressed_image, unsigned long& jpeg_size) const;
+  unsigned char* DecompressImage(unsigned char* compressed_image, unsigned long jpeg_size) const;
 
   /**
    * GetDecompressedSize() - Get the size of a decompressed image

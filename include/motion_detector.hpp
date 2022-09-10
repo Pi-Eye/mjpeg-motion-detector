@@ -70,7 +70,7 @@ class MotionDetector {
    * size:      Size of JPEG image buffer
    * returns:   bool - if motion is detected or not
    */
-  bool DetectOnFrame(unsigned char* frame, unsigned long& size);
+  bool DetectOnFrame(unsigned char* frame, unsigned long size);
 
   /**
    * DetectOnDecompressedFrame() - Processes a decompressed frame for motion detection

@@ -53,7 +53,7 @@ MotionDetector::~MotionDetector() {
   frames_.clear();
 }
 
-bool MotionDetector::DetectOnFrame(unsigned char* frame, unsigned long& size) {
+bool MotionDetector::DetectOnFrame(unsigned char* frame, unsigned long size) {
   unsigned char* decompressed = decompressor_.DecompressImage(frame, size);
 
   bool motion = DetectOnDecompressedFrame(decompressed);
