@@ -48,7 +48,7 @@ MotionDetector::~MotionDetector() {
   frames_.clear();
 }
 
-bool MotionDetector::DetectOnFrame(unsigned char* frame, unsigned long size) {
+bool MotionDetector::DetectOnFrame(const unsigned char* frame, unsigned long size) {
   unsigned char* decompressed = decompressor_.DecompressImage(frame, size);
 
   bool motion = DetectOnDecompressedFrame(decompressed);
@@ -58,7 +58,7 @@ bool MotionDetector::DetectOnFrame(unsigned char* frame, unsigned long size) {
   return motion;
 }
 
-bool MotionDetector::DetectOnDecompressedFrame(unsigned char* frame) {
+bool MotionDetector::DetectOnDecompressedFrame(const unsigned char* frame) {
   // Run processing kernels
   BlurAndScale(frame);
   StabilizeAndCompareFrames();
@@ -77,10 +77,10 @@ bool MotionDetector::DetectOnDecompressedFrame(unsigned char* frame) {
   return total_diff > diff_threshold_;
 }
 
-cl::Buffer& MotionDetector::BlurAndScale(unsigned char* frame) {
+cl::Buffer& MotionDetector::BlurAndScale(const unsigned char* frame) {
   int error = CL_SUCCESS;
   // Write new frame to OpenCL device
-  error = cmd_queue_.enqueueWriteBuffer(input_frame_, CL_TRUE, 0, input_frame_buffer_size_ * sizeof(unsigned char), static_cast<void*>(frame));
+  error = cmd_queue_.enqueueWriteBuffer(input_frame_, CL_TRUE, 0, input_frame_buffer_size_ * sizeof(unsigned char), static_cast<const void*>(frame));
 
   // Queue kernels
   // Vertical Scale
