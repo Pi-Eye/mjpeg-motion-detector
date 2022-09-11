@@ -33,6 +33,11 @@ struct InputVideoSettings {
  * min_pixel_diff:        minimum difference between pixels to count as different
  * min_changed_pixels:    minimum pecentage of pixels that need to change in a frame to count as a different frame
  * decomp_method:         decompression method to use for jpeg
+ *
+ * kBlurScaleVerticalFile:      Locations of OpenCL kernels
+ * kBlurScaleHorizontalFile
+ * kStabilizeFile
+ * kCalculateDifferenceFile
  */
 struct MotionConfig {
   unsigned int gaussian_size;
@@ -42,6 +47,10 @@ struct MotionConfig {
   unsigned int min_pixel_diff;
   float min_changed_pixels;
   DecompFrameMethod decomp_method;
+  std::string kBlurScaleVerticalFile = "blur_and_scale_vertical.cl";
+  std::string kBlurScaleHorizontalFile = "blur_and_scale_horizontal.cl";
+  std::string kStabilizeFile = "stabilize_bg_mvt.cl";
+  std::string kCalculateDifferenceFile = "calculate_difference.cl";
 };
 
 /**

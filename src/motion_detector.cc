@@ -15,11 +15,6 @@
 #define OPEN_CL_COMPILE_FLAGS "-cl-fast-relaxed-math -w"
 #define MAX_WORK_GROUP_SIZE 1024
 
-const std::string kBlurScaleVerticalFile = "blur_and_scale_vertical.cl";
-const std::string kBlurScaleHorizontalFile = "blur_and_scale_horizontal.cl";
-const std::string kStabilizeFile = "stabilize_bg_mvt.cl";
-const std::string kCalculateDifferenceFile = "calculate_difference.cl";
-
 MotionDetector::MotionDetector(InputVideoSettings input_vid_settings, MotionConfig motion_config, DeviceConfig device_config, std::ostream* output)
     : input_vid_(input_vid_settings),
       motion_config_(motion_config),
@@ -322,7 +317,7 @@ void MotionDetector::LoadBlurAndScaleBuffers() {
 void MotionDetector::LoadBlurAndScaleKernels() {
   // Load vertical kernel
   int error = CL_SUCCESS;
-  cl::Program vertical_program = LoadProgram(kBlurScaleVerticalFile);
+  cl::Program vertical_program = LoadProgram(motion_config_.kBlurScaleVerticalFile);
   bs_vertical_kernel_ = cl::Kernel(vertical_program, "blur_and_scale_vertical", &error);
   if (error != CL_SUCCESS) throw std::runtime_error("Failed to create vertical blur and scale kernel with error code: " + std::to_string(error));
 
@@ -346,7 +341,7 @@ void MotionDetector::LoadBlurAndScaleKernels() {
   }
 
   // Load horizontal kernel
-  cl::Program horizontal_program = LoadProgram(kBlurScaleHorizontalFile);
+  cl::Program horizontal_program = LoadProgram(motion_config_.kBlurScaleHorizontalFile);
   bs_horizontal_kernel_ = cl::Kernel(horizontal_program, "blur_and_scale_horizontal", &error);
   if (error != CL_SUCCESS) throw std::runtime_error("Failed to create horizontal blur and scale kernel with error code: " + std::to_string(error));
 
@@ -479,7 +474,7 @@ void MotionDetector::LoadStabilizeAndCompareBuffers() {
 void MotionDetector::LoadStabilizeAndCompareKernel() {
   // Load kernel
   int error = CL_SUCCESS;
-  cl::Program stabilize_program = LoadProgram(kStabilizeFile);
+  cl::Program stabilize_program = LoadProgram(motion_config_.kStabilizeFile);
   stabilize_kernel_ = cl::Kernel(stabilize_program, "stabilize_bg_mvt");
   if (error != CL_SUCCESS) throw std::runtime_error("Failed to create stabilize background and movement kernel with error code: " + std::to_string(error));
 
