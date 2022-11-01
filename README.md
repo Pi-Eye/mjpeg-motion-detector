@@ -81,7 +81,7 @@ int main() {
   unsigned int bg_stabilization_len = 10;                           // number of frames to average to form background frame (acceptable values: > 0)
   unsigned int mvt_stabilization_len = 2;                           // number of frames to average to form movement frame (acceptable values: > 0)
   unsigned int min_pixel_diff = 5;                                  // amount pixels need to be different by to be considered different (acceptable values: >= 0)
-  unsigned int min_changed_pixels = 0.2;                            // percentage of pixels that need to be different to be considered motion (acceptable values: 0.0 - 1.0)
+  float min_changed_pixels = 0.2;                            // percentage of pixels that need to be different to be considered motion (acceptable values: 0.0 - 1.0)
   DecompFrameMethod decomp_method = DecompFrameMethod::kAccurate;   // algorithm to use to decompress jpeg (acceptable values: kAccurate, kFast)
 
   DeviceType device_type = DeviceType::kSpecific;                   // type of OpenCL device to select (acceptable values: kCPU, kGPU, kSpecific)
@@ -105,7 +105,6 @@ int main() {
     }
   }
 }
-
 ```
 
 
